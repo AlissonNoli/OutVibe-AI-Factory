@@ -62,8 +62,8 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 1 — Ingestão + BD (Workflow 01) — testado: Drive Inbox → `projetos`/`arquivos`/`logs` → Processando
 - [x] Fase 2 — Agente Diretor — `02-diretor.json` (testado; normalizar `status` completo→ok)
 - [x] Fase 3a — Copywriter — `03-copywriter.json` (testado)
-- [ ] Fase 3b — Social Media Instagram — `04-social-media.json` (ver `docs/setup/09-workflow-04.md`)
-- [ ] Fase 4 — Output humano + calendário
+- [x] Fase 3b — Social Media Instagram — `04-social-media.json`
+- [ ] Fase 4 — Output humano + calendário — `05-output.json` (ver `docs/setup/10-workflow-05.md`)
 - [ ] Fase 5 — Feedback manual de métricas
 - [ ] Fase 6 — Vídeo (Whisper, FFmpeg, Agente Editor)
 - [ ] Fase 7 — Viralização, Publicador automático, Analytics
