@@ -399,7 +399,7 @@
             {
               "keyName": "id",
               "condition": "eq",
-              "keyValue": "={{ $json.projeto_id }}"
+              "keyValue": "={{ $('Code — parse copy JSON').item.json.projeto_id }}"
             }
           ]
         },
@@ -407,7 +407,7 @@
           "fieldValues": [
             {
               "fieldId": "estado",
-              "fieldValue": "={{ $json.estado }}"
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.estado }}"
             }
           ]
         }
@@ -431,7 +431,7 @@
           "fieldValues": [
             {
               "fieldId": "projeto_id",
-              "fieldValue": "={{ $json.projeto_id }}"
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.projeto_id }}"
             },
             {
               "fieldId": "agente",
@@ -439,11 +439,11 @@
             },
             {
               "fieldId": "nivel",
-              "fieldValue": "={{ $json.status_agente === 'ok' ? 'info' : 'warn' }}"
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.status_agente === 'ok' ? 'info' : 'warn' }}"
             },
             {
               "fieldId": "mensagem",
-              "fieldValue": "={{ $json.mensagem_log }}"
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.mensagem_log || 'Copywriter concluído' }}"
             }
           ]
         }
