@@ -17,8 +17,8 @@ Checklist:
 - [ ] A — Supabase + `001_init.sql`
 - [ ] B — Pastas Drive + IDs anotados
 - [ ] C — Client OAuth Google (redirect URI do n8n)
-- [ ] D — Chave Anthropic
-- [ ] E — Credenciais no n8n (Anthropic, Drive, Supabase)
+- [ ] D — Chave Anthropic (**adiado** — só na Fase 2 / Agente Diretor)
+- [x] E parcial — Credenciais no n8n: Drive + Supabase (Anthropic depois)
 
 Detalhe: `05-onde-conseguir-chaves.md` (links e cliques), `04-vps-secrets.md`, `01`–`03`.
 

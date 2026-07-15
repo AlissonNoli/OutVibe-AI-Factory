@@ -58,8 +58,8 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 ## Roadmap
 
 - [x] Fase 0a — Fundações no repo (Docker Compose, Caddy, schema SQL, prompts, ADRs)
-- [ ] Fase 0b — Configuração live (credenciais n8n, projeto Supabase + migração, pastas Drive) — `docs/setup/00-pre-workflow-01.md`
-- [ ] Fase 1 — Ingestão + BD (Workflow 01)
+- [x] Fase 0b — Config live (Supabase, pastas Drive, OAuth Drive + Supabase no n8n) — Anthropic adiado para Fase 2
+- [ ] Fase 1 — Ingestão + BD (Workflow 01) — JSON em `n8n/workflows/01-ingestao.json`
 - [ ] Fase 2 — Agente Diretor
 - [ ] Fase 3 — Copywriter + Social Media
 - [ ] Fase 4 — Output humano + calendário
