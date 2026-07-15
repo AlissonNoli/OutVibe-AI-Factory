@@ -39,13 +39,13 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 
 ## Como correr
 
-1. Copiar `.env.example` para `.env` e preencher.
-2. Apontar um subdomínio (ex: `n8n.outvibe.pt`) para o IP do VPS.
+1. Apontar um subdomínio (ex: `n8n.outvibe.pt`) para o IP do VPS.
+2. Na VPS: copiar `.env.example` → `.env` e preencher **só** secrets de infra — ver `docs/setup/04-vps-secrets.md`.
 3. `docker compose up -d`
 4. Abrir `https://n8n.SEU_DOMINIO`, criar conta de admin.
-5. Configurar credenciais no n8n: Google Drive (OAuth), Anthropic API, Supabase.
-6. Importar os workflows de `n8n/workflows/`.
-7. Correr as migrações de `db/migrations/` no SQL Editor do Supabase.
+5. APIs externas (Anthropic, Drive, Supabase) → **Credentials** no n8n (não no `.env`). Onde obter cada chave: `docs/setup/05-onde-conseguir-chaves.md`.
+6. Restantes pré-requisitos do Workflow 01: `docs/setup/00-pre-workflow-01.md`.
+7. Importar workflows de `n8n/workflows/` + migração `db/migrations/001_init.sql`.
 
 ## Convenções
 
@@ -57,8 +57,9 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 
 ## Roadmap
 
-- [x] Fase 0 — Fundações (repo, VPS, Docker, Supabase, pastas Drive)
-- [ ] Fase 1 — Ingestão + BD (Workflow 01)
+- [x] Fase 0a — Fundações no repo (Docker Compose, Caddy, schema SQL, prompts, ADRs)
+- [x] Fase 0b — Config live (Supabase, pastas Drive, OAuth Drive + Supabase no n8n) — Anthropic adiado para Fase 2
+- [ ] Fase 1 — Ingestão + BD (Workflow 01) — JSON em `n8n/workflows/01-ingestao.json`
 - [ ] Fase 2 — Agente Diretor
 - [ ] Fase 3 — Copywriter + Social Media
 - [ ] Fase 4 — Output humano + calendário

@@ -1,0 +1,273 @@
+{
+  "name": "01 — Ingestão (Drive → Supabase → Processando)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1cZ9zefDmV35Z-LjavbbFlZa_tol6C3RV",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "trig-drive-inbox",
+      "name": "Drive — Inbox (novo ficheiro)",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "notesInFlow": true,
+      "notes": "Pasta Inbox. Preferir UPLOAD novo (não move dentro do Drive). Credencial: Google Drive OAuth."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "tipo_entrada",
+              "value": "={{ $json.mimeType && $json.mimeType.startsWith('image/') ? 'fotos_texto' : 'brief_texto' }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "tipo_arquivo",
+              "value": "={{ $json.mimeType && $json.mimeType.startsWith('image/') ? 'foto' : ($json.mimeType && $json.mimeType.startsWith('video/') ? 'video' : ($json.mimeType && $json.mimeType.startsWith('audio/') ? 'audio' : 'texto')) }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "drive_file_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "nome_arquivo",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "pasta_drive_id",
+              "value": "1cZ9zefDmV35Z-LjavbbFlZa_tol6C3RV",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-campos",
+      "name": "Normalizar campos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "projetos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "origem",
+              "fieldValue": "google_drive"
+            },
+            {
+              "fieldId": "tipo_entrada",
+              "fieldValue": "={{ $json.tipo_entrada }}"
+            },
+            {
+              "fieldId": "estado",
+              "fieldValue": "ingerido"
+            },
+            {
+              "fieldId": "brief",
+              "fieldValue": "={{ $json.nome_arquivo }}"
+            },
+            {
+              "fieldId": "pasta_drive_id",
+              "fieldValue": "={{ $json.pasta_drive_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-projeto",
+      "name": "Supabase — criar projeto",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [560, 0],
+      "notesInFlow": true,
+      "notes": "Selecionar credencial Supabase account. Devolve o id (uuid) do projeto."
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "arquivos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "nome",
+              "fieldValue": "={{ $('Normalizar campos').item.json.nome_arquivo }}"
+            },
+            {
+              "fieldId": "tipo",
+              "fieldValue": "={{ $('Normalizar campos').item.json.tipo_arquivo }}"
+            },
+            {
+              "fieldId": "drive_file_id",
+              "fieldValue": "={{ $('Normalizar campos').item.json.drive_file_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-arquivo",
+      "name": "Supabase — registar arquivo",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [840, 0]
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Normalizar campos').item.json.drive_file_id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1RiQ5JMJASZnG4bOeghOfJTjUpqDXHQBF",
+          "mode": "id"
+        }
+      },
+      "id": "drive-move",
+      "name": "Drive — mover para Processando",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1120, 0],
+      "notesInFlow": true,
+      "notes": "Folder ID Processando. Mesma credencial Google Drive OAuth."
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $('Supabase — criar projeto').item.json.id }}"
+            },
+            {
+              "fieldId": "agente",
+              "fieldValue": "ingestao"
+            },
+            {
+              "fieldId": "nivel",
+              "fieldValue": "info"
+            },
+            {
+              "fieldId": "mensagem",
+              "fieldValue": "={{ 'Ficheiro ingerido: ' + $('Normalizar campos').item.json.nome_arquivo }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-log",
+      "name": "Supabase — log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1400, 0]
+    }
+  ],
+  "connections": {
+    "Drive — Inbox (novo ficheiro)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar campos": {
+      "main": [
+        [
+          {
+            "node": "Supabase — criar projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — criar projeto": {
+      "main": [
+        [
+          {
+            "node": "Supabase — registar arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — registar arquivo": {
+      "main": [
+        [
+          {
+            "node": "Drive — mover para Processando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive — mover para Processando": {
+      "main": [
+        [
+          {
+            "node": "Supabase — log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "outvibe": {
+      "fase": 1,
+      "requer_anthropic": false,
+      "inbox_folder_id": "1cZ9zefDmV35Z-LjavbbFlZa_tol6C3RV",
+      "processando_folder_id": "1RiQ5JMJASZnG4bOeghOfJTjUpqDXHQBF"
+    }
+  },
+  "pinData": {},
+  "tags": []
+}
