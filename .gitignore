@@ -1,6 +1,8 @@
 .env
+dashboard/.env
 *.log
 node_modules/
+dashboard/node_modules/
 # Nunca versionar media
 *.mp4
 *.mov

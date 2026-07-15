@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OutVibe — Publicar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <div id="login-view" class="login-shell hidden">
+    <form id="login-form" class="login-card">
+      <p class="brand">OutVibe</p>
+      <h1>Publicar</h1>
+      <p class="lede">Fila Instagram — legenda, horário, marcar feito.</p>
+      <label>
+        Password
+        <input type="password" id="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit">Entrar</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </div>
+
+  <div id="app-view" class="app hidden">
+    <header class="top">
+      <div>
+        <p class="brand">OutVibe</p>
+        <h1>Para publicar</h1>
+      </div>
+      <div class="top-actions">
+        <select id="filtro-estado">
+          <option value="por_publicar">Por publicar</option>
+          <option value="publicado">Publicados</option>
+          <option value="descartado">Descartados</option>
+        </select>
+        <button type="button" id="btn-refresh" class="ghost">Atualizar</button>
+        <button type="button" id="btn-logout" class="ghost">Sair</button>
+      </div>
+    </header>
+
+    <p id="status-line" class="status-line"></p>
+    <div id="queue" class="queue"></div>
+  </div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
