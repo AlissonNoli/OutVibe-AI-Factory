@@ -1,0 +1,604 @@
+{
+  "name": "04 — Social Media Instagram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Manual — testar agora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "sched",
+      "name": "Schedule — a cada 3 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "projetos",
+        "returnAll": false,
+        "limit": 5,
+        "filterType": "string",
+        "filterString": "estado=eq.escrito"
+      },
+      "id": "supa-proj",
+      "name": "Supabase — projetos escritos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        260,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "estado=escrito (pós Copywriter)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-proj",
+      "name": "IF — há projeto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "maxItems": 1
+      },
+      "id": "limit",
+      "name": "Limit — 1 projeto",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        740,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "conteudos",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=projeto_id=eq.{{ $json.id }}&agente=eq.copywriter"
+      },
+      "id": "supa-copy",
+      "name": "Supabase — textos copywriter",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        980,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const projeto = $('Limit — 1 projeto').item.json;\nconst conteudos = $input.all().map(i => i.json).filter(c => c.agente === 'copywriter' || !c.agente);\n\nreturn [{\n  json: {\n    projeto_id: projeto.id,\n    brief: projeto.brief || '',\n    plano: projeto.plano,\n    data_sugerida: (projeto.plano && projeto.plano.resultado && projeto.plano.resultado.data_sugerida_publicacao) || null,\n    conteudos_copy: conteudos.map(c => ({\n      id: c.id,\n      tipo: c.tipo,\n      conteudo: c.conteudo\n    }))\n  }\n}];"
+      },
+      "id": "code-ctx",
+      "name": "Code — montar contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst system = \"# Agente Social Media \\u2014 v0.1 (Instagram only)\\n\\n## Papel\\n\\nRecebes o texto-m\\u00e3e do Copywriter e adaptas **apenas para Instagram**. Nunca copies o texto-m\\u00e3e \\u00e0 letra \\u2014 muda \\u00e2ngulo, ritmo e registo para feed/stories/reels do IG.\\n\\n> MVP actual: s\\u00f3 Instagram. TikTok, LinkedIn e Threads ficam desactivados at\\u00e9 nova fase.\\n\\n## Conhecimento Instagram\\n\\n- Legenda at\\u00e9 ~150 palavras\\n- Hook na 1.\\u00aa linha (antes do \\u201cver mais\\u201d)\\n- 3\\u20135 hashtags relevantes no fim\\n- CTA claro\\n- `notas_publicacao_manual` obrigat\\u00f3rias (publica\\u00e7\\u00e3o humana)\\n\\n## Sa\\u00edda (apenas JSON)\\n\\n```json\\n{\\n  \\\"projeto_id\\\": \\\"...\\\",\\n  \\\"agente\\\": \\\"social_media\\\",\\n  \\\"status\\\": \\\"ok\\\",\\n  \\\"resultado\\\": {\\n    \\\"publicacoes\\\": [\\n      {\\n        \\\"plataforma\\\": \\\"instagram\\\",\\n        \\\"formato\\\": \\\"post_single | carousel | reel | story_series\\\",\\n        \\\"texto_final\\\": \\\"...\\\",\\n        \\\"hashtags\\\": [\\\"...\\\"],\\n        \\\"foto\\\": \\\"nome_do_ficheiro.jpg\\\",\\n        \\\"melhor_horario_sugerido\\\": \\\"HH:MM\\\",\\n        \\\"notas_publicacao_manual\\\": \\\"instru\\u00e7\\u00f5es para quem vai publicar \\u00e0 m\\u00e3o\\\"\\n      }\\n    ]\\n  },\\n  \\\"qualidade\\\": 0,\\n  \\\"problemas\\\": [],\\n  \\\"proximo_agente\\\": null\\n}\\n```\\n\\n## Regras\\n\\n1. Adaptar \\u2260 encurtar. Cada pe\\u00e7a do Copywriter deve virar 1 vers\\u00e3o Instagram.\\n2. `plataforma` \\u00e9 sempre `\\\"instagram\\\"`.\\n3. `status` s\\u00f3: `ok` | `erro` | `precisa_revisao` (nunca `completo`).\\n4. `qualidade` \\u00e9 inteiro 0\\u2013100, n\\u00e3o objeto.\\n5. O humano publica \\u2014 notas manuais concretas (crop, ordem do carrossel, sticker, etc.).\\n\";\n\nconst userText = [\n  'Adapta os textos-mãe ABAIXO apenas para Instagram. Devolve APENAS JSON.',\n  'Uma publicação Instagram por cada texto-mãe.',\n  '',\n  'projeto_id: ' + ctx.projeto_id,\n  'brief: ' + (ctx.brief || ''),\n  '',\n  'plano_do_diretor (resumo):',\n  JSON.stringify(ctx.plano || {}, null, 2),\n  '',\n  'textos_mae_copywriter:',\n  JSON.stringify(ctx.conteudos_copy || [], null, 2)\n].join('\\n');\n\nconst body = {\n  model: 'claude-sonnet-4-5',\n  max_tokens: 8192,\n  system,\n  messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }]\n};\n\nreturn [{ json: { projeto_id: ctx.projeto_id, data_sugerida: ctx.data_sugerida, anthropicBody: body } }];"
+      },
+      "id": "code-prompt",
+      "name": "Code — prompt Social IG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {}
+      },
+      "id": "http",
+      "name": "HTTP — Claude (Social IG)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        -80
+      ],
+      "notesInFlow": true,
+      "notes": "Credencial Anthropic. Só Instagram."
+    },
+    {
+      "parameters": {
+        "jsCode": "const projetoId = $('Code — prompt Social IG').item.json.projeto_id;\nconst dataSugerida = $('Code — prompt Social IG').item.json.data_sugerida;\nconst resp = $input.first().json;\n\nconst text = (resp.content || [])\n  .filter(b => b.type === 'text')\n  .map(b => b.text)\n  .join('\\n')\n  .trim();\n\nlet parsed;\ntry {\n  const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = {\n    projeto_id: projetoId,\n    agente: 'social_media',\n    status: 'erro',\n    resultado: { publicacoes: [] },\n    qualidade: 0,\n    problemas: ['JSON inválido: ' + e.message, text.slice(0, 500)],\n    proximo_agente: null\n  };\n}\n\nparsed.projeto_id = parsed.projeto_id || projetoId;\nparsed.agente = 'social_media';\n\nconst raw = String(parsed.status || '').toLowerCase().trim();\nconst okAliases = new Set(['ok', 'completo', 'complete', 'success', 'sucesso', 'done']);\nif (okAliases.has(raw)) parsed.status = 'ok';\nelse if (['precisa_revisao', 'revisao', 'review'].includes(raw)) parsed.status = 'precisa_revisao';\nelse if (['erro', 'error', 'fail', 'failed'].includes(raw)) parsed.status = 'erro';\nelse if (parsed.resultado && Array.isArray(parsed.resultado.publicacoes) && parsed.resultado.publicacoes.length) {\n  parsed.status = 'ok';\n} else {\n  parsed.status = 'erro';\n}\n\nif (parsed.qualidade && typeof parsed.qualidade === 'object') {\n  const n = Number(parsed.qualidade.nota);\n  parsed.qualidade = Number.isFinite(n) ? Math.round(n * (n <= 10 ? 10 : 1)) : 0;\n}\n\n// força instagram\nconst pubs = ((parsed.resultado && parsed.resultado.publicacoes) || []).map(p => ({\n  ...p,\n  plataforma: 'instagram'\n}));\nif (!parsed.resultado) parsed.resultado = {};\nparsed.resultado.publicacoes = pubs;\n\nconst estado = parsed.status === 'ok' ? 'adaptado' : 'erro';\n\nreturn [{\n  json: {\n    projeto_id: projetoId,\n    data_sugerida: dataSugerida,\n    estado,\n    saida: parsed,\n    publicacoes: pubs,\n    status_agente: parsed.status,\n    mensagem_log: parsed.status === 'ok'\n      ? ('Social Media IG: ' + pubs.length + ' versão(ões)')\n      : ('Social Media: ' + parsed.status)\n  }\n}];"
+      },
+      "id": "code-parse",
+      "name": "Code — parse social JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $input.first().json;\nconst rows = [];\n\nif (base.status_agente === 'ok' && base.publicacoes.length) {\n  for (const p of base.publicacoes) {\n    rows.push({\n      json: {\n        insert_mode: 'conteudo',\n        projeto_id: base.projeto_id,\n        data_sugerida: base.data_sugerida,\n        estado: base.estado,\n        status_agente: base.status_agente,\n        mensagem_log: base.mensagem_log,\n        tipo: p.formato || 'post_instagram',\n        conteudo: p\n      }\n    });\n    rows.push({\n      json: {\n        insert_mode: 'publicacao',\n        projeto_id: base.projeto_id,\n        data_sugerida: base.data_sugerida,\n        estado: base.estado,\n        status_agente: base.status_agente,\n        mensagem_log: base.mensagem_log,\n        plataforma: 'instagram',\n        pub: p\n      }\n    });\n  }\n}\n\nrows.push({\n  json: {\n    insert_mode: 'finalizar',\n    projeto_id: base.projeto_id,\n    data_sugerida: base.data_sugerida,\n    estado: base.estado,\n    status_agente: base.status_agente,\n    mensagem_log: base.mensagem_log\n  }\n});\n\nreturn rows;"
+      },
+      "id": "code-exp",
+      "name": "Code — explodir publicações",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.insert_mode }}",
+                    "rightValue": "conteudo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "conteudo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.insert_mode }}",
+                    "rightValue": "publicacao",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "publicacao"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.insert_mode }}",
+                    "rightValue": "finalizar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "finalizar"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "switch",
+      "name": "Switch — modo insert",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2420,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "conteudos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $json.projeto_id }}"
+            },
+            {
+              "fieldId": "agente",
+              "fieldValue": "social_media"
+            },
+            {
+              "fieldId": "tipo",
+              "fieldValue": "={{ $json.tipo }}"
+            },
+            {
+              "fieldId": "conteudo",
+              "fieldValue": "={{ $json.conteudo }}"
+            },
+            {
+              "fieldId": "versao_prompt",
+              "fieldValue": "social-media-ig-v0.1"
+            }
+          ]
+        }
+      },
+      "id": "supa-cont",
+      "name": "Supabase — gravar conteúdo IG",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "publicacoes",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $json.projeto_id }}"
+            },
+            {
+              "fieldId": "plataforma",
+              "fieldValue": "instagram"
+            },
+            {
+              "fieldId": "data_sugerida",
+              "fieldValue": "={{ $json.data_sugerida }}"
+            },
+            {
+              "fieldId": "estado",
+              "fieldValue": "por_publicar"
+            }
+          ]
+        }
+      },
+      "id": "supa-pub",
+      "name": "Supabase — linha publicações",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        -40
+      ],
+      "notesInFlow": true,
+      "notes": "Calendário IG. texto fica em conteudos; esta linha marca por_publicar."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "projetos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Code — parse social JSON').item.json.projeto_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "estado",
+              "fieldValue": "={{ $('Code — parse social JSON').item.json.estado }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-upd",
+      "name": "Supabase — estado adaptado",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $('Code — parse social JSON').item.json.projeto_id }}"
+            },
+            {
+              "fieldId": "agente",
+              "fieldValue": "social_media"
+            },
+            {
+              "fieldId": "nivel",
+              "fieldValue": "info"
+            },
+            {
+              "fieldId": "mensagem",
+              "fieldValue": "={{ $('Code — parse social JSON').item.json.mensagem_log || 'Social Media IG concluído' }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-log",
+      "name": "Supabase — log social IG",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Manual — testar agora": {
+      "main": [
+        [
+          {
+            "node": "Supabase — projetos escritos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule — a cada 3 min": {
+      "main": [
+        [
+          {
+            "node": "Supabase — projetos escritos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — projetos escritos": {
+      "main": [
+        [
+          {
+            "node": "IF — há projeto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — há projeto?": {
+      "main": [
+        [
+          {
+            "node": "Limit — 1 projeto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Limit — 1 projeto": {
+      "main": [
+        [
+          {
+            "node": "Supabase — textos copywriter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — textos copywriter": {
+      "main": [
+        [
+          {
+            "node": "Code — montar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — montar contexto": {
+      "main": [
+        [
+          {
+            "node": "Code — prompt Social IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — prompt Social IG": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Claude (Social IG)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Claude (Social IG)": {
+      "main": [
+        [
+          {
+            "node": "Code — parse social JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — parse social JSON": {
+      "main": [
+        [
+          {
+            "node": "Code — explodir publicações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — explodir publicações": {
+      "main": [
+        [
+          {
+            "node": "Switch — modo insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch — modo insert": {
+      "main": [
+        [
+          {
+            "node": "Supabase — gravar conteúdo IG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase — linha publicações",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase — estado adaptado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — estado adaptado": {
+      "main": [
+        [
+          {
+            "node": "Supabase — log social IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "outvibe": {
+      "fase": "3b",
+      "plataformas": [
+        "instagram"
+      ],
+      "prompt": "agents/prompts/social-media.md"
+    }
+  },
+  "pinData": {},
+  "tags": []
+}
