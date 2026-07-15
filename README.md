@@ -52,6 +52,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - **Workflows**: qualquer alteração no n8n é exportada como JSON para `n8n/workflows/` e commitada.
 - **Prompts**: são código. Cada alteração a `agents/prompts/*.md` é um commit — o Analytics vai comparar versões.
 - **Decisões técnicas**: registadas em `docs/decisions/` (ADRs numerados).
+- **Produto / PRDs**: `docs/prd/` (ex. dashboard de publicação).
 - **Commits**: `feat:`, `fix:`, `docs:`, `chore:`.
 - **Comunicação entre agentes**: sempre no formato de `agents/schema.json`. Nunca há comunicação direta entre agentes — tudo passa pelo Diretor.
 
@@ -64,6 +65,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 3a — Copywriter — `03-copywriter.json` (testado)
 - [x] Fase 3b — Social Media Instagram — `04-social-media.json`
 - [ ] Fase 4 — Output humano + calendário — `05-output.json` (ver `docs/setup/10-workflow-05.md`)
+- [ ] Fase 4b — **Dashboard de publicação humana** (foto + legendas IG + horários + marcar publicado) — `docs/prd/001-dashboard-publicacao-humana.md`
 - [ ] Fase 5 — Feedback manual de métricas
 - [ ] Fase 6 — Vídeo (Whisper, FFmpeg, Agente Editor)
 - [ ] Fase 7 — Viralização, Publicador automático, Analytics
