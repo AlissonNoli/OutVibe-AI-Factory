@@ -61,8 +61,8 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 0b — Config live (Supabase, pastas Drive, OAuth Drive + Anthropic + Supabase no n8n)
 - [x] Fase 1 — Ingestão + BD (Workflow 01) — testado: Drive Inbox → `projetos`/`arquivos`/`logs` → Processando
 - [x] Fase 2 — Agente Diretor — `02-diretor.json` (testado; normalizar `status` completo→ok)
-- [ ] Fase 3a — Copywriter — `03-copywriter.json` (ver `docs/setup/08-workflow-03.md`)
-- [ ] Fase 3b — Social Media
+- [x] Fase 3a — Copywriter — `03-copywriter.json` (testado)
+- [ ] Fase 3b — Social Media Instagram — `04-social-media.json` (ver `docs/setup/09-workflow-04.md`)
 - [ ] Fase 4 — Output humano + calendário
 - [ ] Fase 5 — Feedback manual de métricas
 - [ ] Fase 6 — Vídeo (Whisper, FFmpeg, Agente Editor)
