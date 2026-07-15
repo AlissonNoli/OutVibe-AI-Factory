@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OutVibe Agent Message",
+  "description": "Formato padrão de entrada e saída de TODOS os agentes. Nunca há comunicação direta entre agentes — tudo passa pelo Diretor.",
+  "type": "object",
+  "definitions": {
+    "entrada": {
+      "type": "object",
+      "required": ["projeto_id", "agente", "objetivo", "contexto"],
+      "properties": {
+        "projeto_id": { "type": "string", "description": "ID único do projeto (Supabase)" },
+        "agente": { "type": "string", "enum": ["diretor", "copywriter", "social_media", "editor", "viralizacao", "publicador", "analytics"] },
+        "objetivo": { "type": "string", "description": "O que este agente deve produzir nesta tarefa" },
+        "contexto": { "type": "object", "description": "Tema, público, tom de voz, campanha — definidos pelo Diretor" },
+        "arquivos": { "type": "array", "items": { "type": "string" }, "description": "Paths/IDs no Google Drive" },
+        "memoria": { "type": "object", "description": "Preferências aprendidas deste agente (tom, CTAs favoritos, etc.)" }
+      }
+    },
+    "saida": {
+      "type": "object",
+      "required": ["projeto_id", "agente", "status", "resultado"],
+      "properties": {
+        "projeto_id": { "type": "string" },
+        "agente": { "type": "string" },
+        "status": { "type": "string", "enum": ["ok", "erro", "precisa_revisao"] },
+        "resultado": { "type": "object", "description": "Output específico do agente" },
+        "qualidade": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Auto-avaliação do agente" },
+        "problemas": { "type": "array", "items": { "type": "string" } },
+        "proximo_agente": { "type": ["string", "null"], "description": "Sugestão para o Diretor — quem decide é sempre ele" }
+      }
+    }
+  }
+}

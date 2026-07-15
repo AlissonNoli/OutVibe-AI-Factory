@@ -1,0 +1,12 @@
+.env
+*.log
+node_modules/
+# Nunca versionar media
+*.mp4
+*.mov
+*.jpg
+*.jpeg
+*.png
+!docs/**/*.png
+# n8n local
+.n8n/
