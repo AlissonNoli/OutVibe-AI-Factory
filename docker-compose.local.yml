@@ -1,0 +1,11 @@
+# Local dev override (NOT for production). Use with:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres n8n
+# Exposes n8n directly over HTTP on localhost:5678 (no Caddy/TLS, no public domain).
+services:
+  n8n:
+    environment:
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_SECURE_COOKIE=false
+    ports:
+      - "5678:5678"
