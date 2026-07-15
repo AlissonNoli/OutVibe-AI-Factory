@@ -262,6 +262,46 @@ button.ok { background: var(--ok); }
   gap: 0.45rem;
 }
 
+.metricas {
+  margin-top: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 107, 92, 0.22);
+  background: rgba(15, 107, 92, 0.06);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.metricas h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.55rem;
+}
+
+.metricas label {
+  font-size: 0.78rem;
+}
+
+.metricas input {
+  margin-top: 0.2rem;
+}
+
+.metricas .url-label { margin-top: 0.15rem; }
+
+.metricas-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.metricas button { justify-self: start; }
+
 .empty {
   padding: 2.5rem 1rem;
   text-align: center;

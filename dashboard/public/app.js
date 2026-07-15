@@ -63,7 +63,33 @@ async function copyText(text) {
   await navigator.clipboard.writeText(text);
 }
 
+function metricsFormHtml(pub) {
+  if (!pub?.id) return '';
+  const v = (x) => (x === null || x === undefined ? '' : x);
+  const updated = pub.metricas_atualizadas_em
+    ? `<p class="metricas-meta">Atualizado: ${escapeHtml(new Date(pub.metricas_atualizadas_em).toLocaleString('pt-PT'))}</p>`
+    : '';
+  return `
+    <form class="metricas" data-pub="${escapeHtml(pub.id)}">
+      <h4>Métricas (após publicar)</h4>
+      <div class="metricas-grid">
+        <label>Views <input type="number" min="0" name="views" value="${escapeHtml(v(pub.views))}" /></label>
+        <label>Likes <input type="number" min="0" name="likes" value="${escapeHtml(v(pub.likes))}" /></label>
+        <label>Comentários <input type="number" min="0" name="comentarios" value="${escapeHtml(v(pub.comentarios))}" /></label>
+        <label>Partilhas <input type="number" min="0" name="partilhas" value="${escapeHtml(v(pub.partilhas))}" /></label>
+        <label>Saves <input type="number" min="0" name="saves" value="${escapeHtml(v(pub.saves))}" /></label>
+      </div>
+      <label class="url-label">URL do post (opcional)
+        <input type="url" name="url_publicacao" placeholder="https://www.instagram.com/p/..." value="${escapeHtml(v(pub.url_publicacao))}" />
+      </label>
+      ${updated}
+      <button type="submit" class="ok">Guardar métricas</button>
+    </form>`;
+}
+
 function render(projetos) {
+  const mostrandoPublicados = filtroEstado.value === 'publicado';
+
   if (!projetos.length) {
     queueEl.innerHTML = `<div class="empty">Nada nesta fila. Corre o pipeline até <code>adaptado</code>/<code>pronto</code> ou muda o filtro.</div>`;
     return;
@@ -84,6 +110,8 @@ function render(projetos) {
       const hora = peca.melhor_horario_sugerido || '—';
       const tags = formatHashtags(peca.hashtags);
       const pubId = pub?.id || '';
+      const isPub = pub?.estado === 'publicado' || mostrandoPublicados;
+
       return `
         <article class="peca" data-pub-id="${escapeHtml(pubId)}">
           <div class="peca-top">
@@ -95,9 +123,11 @@ function render(projetos) {
           ${peca.notas_publicacao_manual ? `<p class="notas">${escapeHtml(peca.notas_publicacao_manual)}</p>` : ''}
           <div class="actions">
             <button type="button" data-action="copy" data-idx="${idx}">Copiar legenda</button>
-            ${pubId ? `<button type="button" class="ok" data-action="published" data-pub="${escapeHtml(pubId)}">Marcar publicado</button>` : ''}
-            ${pubId ? `<button type="button" class="danger" data-action="discard" data-pub="${escapeHtml(pubId)}">Descartar</button>` : ''}
+            ${pubId && !isPub ? `<button type="button" class="ok" data-action="published" data-pub="${escapeHtml(pubId)}">Marcar publicado</button>` : ''}
+            ${pubId && !isPub ? `<button type="button" class="danger" data-action="discard" data-pub="${escapeHtml(pubId)}">Descartar</button>` : ''}
+            ${pubId && isPub ? `<button type="button" class="ghost" data-action="reopen" data-pub="${escapeHtml(pubId)}">Voltar a por publicar</button>` : ''}
           </div>
+          ${isPub && pubId ? metricsFormHtml(pub) : ''}
         </article>`;
     }).join('');
 
@@ -119,7 +149,6 @@ function render(projetos) {
       </section>`;
   }).join('');
 
-  // Bind copy payloads on project elements
   queueEl.querySelectorAll('.project').forEach((el, pIdx) => {
     const projeto = projetos[pIdx];
     el.querySelectorAll('[data-action="copy"]').forEach((btn) => {
@@ -137,16 +166,51 @@ function render(projetos) {
     });
   });
 
-  queueEl.querySelectorAll('[data-action="published"], [data-action="discard"]').forEach((btn) => {
+  queueEl.querySelectorAll('[data-action="published"], [data-action="discard"], [data-action="reopen"]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.pub;
-      const estado = btn.dataset.action === 'published' ? 'publicado' : 'descartado';
+      const estado = btn.dataset.action === 'published'
+        ? 'publicado'
+        : (btn.dataset.action === 'discard' ? 'descartado' : 'por_publicar');
       btn.disabled = true;
       try {
         await api(`/api/publicacoes/${id}`, {
           method: 'PATCH',
           body: JSON.stringify({ estado }),
         });
+        if (estado === 'publicado') {
+          filtroEstado.value = 'publicado';
+          statusLine.textContent = 'Marcado como publicado — preenche as métricas abaixo.';
+        }
+        await loadFila();
+      } catch (err) {
+        statusLine.textContent = err.message;
+        btn.disabled = false;
+      }
+    });
+  });
+
+  queueEl.querySelectorAll('form.metricas').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = form.dataset.pub;
+      const fd = new FormData(form);
+      const payload = {
+        views: fd.get('views'),
+        likes: fd.get('likes'),
+        comentarios: fd.get('comentarios'),
+        partilhas: fd.get('partilhas'),
+        saves: fd.get('saves'),
+        url_publicacao: fd.get('url_publicacao'),
+      };
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      try {
+        await api(`/api/publicacoes/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        statusLine.textContent = 'Métricas guardadas.';
         await loadFila();
       } catch (err) {
         statusLine.textContent = err.message;

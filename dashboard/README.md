@@ -24,6 +24,12 @@ Abre `http://localhost:3000` → password (default `outvibe`).
 - Mostra tema, thumb Drive (se a partilha permitir), legenda, hashtags, notas, data/hora
 - **Copiar legenda** (+ hashtags)
 - **Marcar publicado** / **Descartar** → atualiza `publicacoes`
+- **Fase 5 — Métricas:** no filtro *Publicados*, formulário para views / likes / comentários / partilhas / saves + URL do post
+
+## Fluxo tipico
+
+1. Filtro **Por publicar** → Copiar legenda → publicar no IG à mão → **Marcar publicado**
+2. Filtro muda para **Publicados** → preencher métricas → **Guardar métricas**
 
 ## Notas
 
