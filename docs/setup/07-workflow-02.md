@@ -36,10 +36,24 @@ update projetos set estado = 'ingerido', plano = null
 where id = 'COLA_O_UUID';
 ```
 
+## Corrigir o projeto actual (já tem plano bom mas `estado=erro`)
+
+No SQL Editor do Supabase:
+
+```sql
+update projetos
+set estado = 'planeado'
+where id = 'ed6ef11b-7e4b-4c26-ab91-5b9f3023ddba'
+  and plano is not null;
+```
+
+(O plano JSON já está gravado — só o estado ficou mal por causa do `status: "completo"`.)
+
 ## Erros comuns
 
 | Sintoma | Fix |
 |---------|-----|
+| Plano válido mas `estado=erro` | Claude usou `status: completo` — parser já normaliza; atualiza o nó Code no n8n ou re-importa `02-diretor.json` |
 | 401 Anthropic | Credencial Anthropic no nó HTTP |
 | 404 model | No nó **Code — prompt Diretor**, troca `claude-sonnet-4-5` por o modelo da tua conta (ex. `claude-3-5-sonnet-latest`) |
 | Filtro Supabase falha | No nó listagem, usa Filter UI: `estado` equals `ingerido` |

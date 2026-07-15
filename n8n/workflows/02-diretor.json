@@ -7,7 +7,10 @@
       "name": "Manual — testar agora",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, -120],
+      "position": [
+        0,
+        -120
+      ],
       "notesInFlow": true,
       "notes": "Clica Execute workflow para processar 1 projeto com estado=ingerido."
     },
@@ -26,7 +29,10 @@
       "name": "Schedule — a cada 2 min",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 120],
+      "position": [
+        0,
+        120
+      ],
       "notesInFlow": true,
       "notes": "Em produção: Active/Published. Desliga se preferires só Manual."
     },
@@ -43,7 +49,10 @@
       "name": "Supabase — projetos ingeridos",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [280, 0],
+      "position": [
+        280,
+        0
+      ],
       "notesInFlow": true,
       "notes": "Credencial: Supabase account. Se o filtro da UI for diferente, usa Filter: estado = ingerido."
     },
@@ -75,7 +84,10 @@
       "name": "IF — há projeto?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [520, 0]
+      "position": [
+        520,
+        0
+      ]
     },
     {
       "parameters": {
@@ -85,7 +97,10 @@
       "name": "Limit — 1 projeto",
       "type": "n8n-nodes-base.limit",
       "typeVersion": 1,
-      "position": [760, -80]
+      "position": [
+        760,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -99,7 +114,10 @@
       "name": "Supabase — arquivos do projeto",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1000, -80]
+      "position": [
+        1000,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -109,7 +127,10 @@
       "name": "Code — montar contexto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1240, -80]
+      "position": [
+        1240,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -139,7 +160,10 @@
       "name": "IF — tem foto?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1480, -80]
+      "position": [
+        1480,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -159,7 +183,10 @@
       "name": "Drive — download foto",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [1720, -200],
+      "position": [
+        1720,
+        -200
+      ],
       "notesInFlow": true,
       "notes": "Credencial Google Drive. Binary fica em 'data'."
     },
@@ -171,7 +198,10 @@
       "name": "Code — foto → base64",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1960, -200]
+      "position": [
+        1960,
+        -200
+      ]
     },
     {
       "parameters": {
@@ -221,17 +251,23 @@
       "name": "Set — sem foto",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1720, 40]
+      "position": [
+        1720,
+        40
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const ctx = $input.first().json;\n\nconst system = `# Agente Diretor — v0.1\\n\\n## Papel\\n\\nÉs o Agente Diretor da OutVibe AI Content Factory. És o cérebro do sistema: nunca crias conteúdo, nunca escreves legendas. A tua única função é analisar, planear e coordenar.\\n\\n## Entrada\\n\\nRecebes um projeto com:\\n- Brief em texto (ideia, tema, notas do utilizador)\\n- Fotos (analisa-as diretamente: o que mostram, energia, contexto, qualidade)\\n- Metadados (data, categoria, campanha se existir)\\n\\n## Tarefa\\n\\nAnalisa o material e devolve um plano de produção em JSON, **sem mais nenhum texto antes ou depois**.\\n\\nO JSON deve seguir exactamente o schema OutVibe (projeto_id, agente=\\\"diretor\\\", status, resultado, qualidade, problemas, proximo_agente).\\n\\nresultado inclui: tema, objetivo (educar|inspirar|vender|comunidade), publico_alvo, tom_de_voz, angulo_principal, plano_de_conteudos (máx 5), cta_da_campanha, data_sugerida_publicacao (YYYY-MM-DD).\\n\\n## Regras\\n\\n1. Se o material for fraco ou insuficiente, di-lo em problemas e usa status: \\\"precisa_revisao\\\" — não inventes um plano forçado.\\n2. Máximo de 5 conteúdos por projeto no MVP. Qualidade > quantidade.\\n3. O tom da OutVibe: direto, energético, sem promessas exageradas.\\n4. Nunca produzas o conteúdo final — isso é trabalho do Copywriter.\\n5. Usa o projeto_id exacto que te for dado.`;\n\nconst userText = [\n  'Analisa este projeto e devolve APENAS o JSON do plano.',\n  '',\n  `projeto_id: ${ctx.projeto_id}`,\n  `tipo_entrada: ${ctx.tipo_entrada}`,\n  `brief: ${ctx.brief || '(sem brief textual — usa a imagem / nome do ficheiro)'}`,\n  `arquivos: ${JSON.stringify(ctx.arquivos || [])}`,\n  ctx.foto_nome ? `foto_principal: ${ctx.foto_nome}` : 'foto_principal: nenhuma',\n  '',\n  'Se houver imagem em anexo neste pedido, analisa-a visualmente.'\n].join('\\n');\n\nconst content = [];\nif (ctx.imageBlock) content.push(ctx.imageBlock);\ncontent.push({ type: 'text', text: userText });\n\nconst body = {\n  model: 'claude-sonnet-4-5',\n  max_tokens: 4096,\n  system,\n  messages: [{ role: 'user', content }]\n};\n\nreturn [{ json: { projeto_id: ctx.projeto_id, anthropicBody: body } }];"
+        "jsCode": "const ctx = $input.first().json;\n\nconst system = `# Agente Diretor — v0.1\\n\\n## Papel\\n\\nÉs o Agente Diretor da OutVibe AI Content Factory. És o cérebro do sistema: nunca crias conteúdo, nunca escreves legendas. A tua única função é analisar, planear e coordenar.\\n\\n## Entrada\\n\\nRecebes um projeto com:\\n- Brief em texto (ideia, tema, notas do utilizador)\\n- Fotos (analisa-as diretamente: o que mostram, energia, contexto, qualidade)\\n- Metadados (data, categoria, campanha se existir)\\n\\n## Tarefa\\n\\nAnalisa o material e devolve um plano de produção em JSON, **sem mais nenhum texto antes ou depois**.\\n\\nO JSON deve seguir exactamente o schema OutVibe (projeto_id, agente=\\\"diretor\\\", status, resultado, qualidade, problemas, proximo_agente).\\n\\nresultado inclui: tema, objetivo (educar|inspirar|vender|comunidade), publico_alvo, tom_de_voz, angulo_principal, plano_de_conteudos (máx 5), cta_da_campanha, data_sugerida_publicacao (YYYY-MM-DD).\\n\\n## Regras\\n\\n1. Se o material for fraco ou insuficiente, di-lo em problemas e usa status: \\\"precisa_revisao\\\" — não inventes um plano forçado.\\n2. Máximo de 5 conteúdos por projeto no MVP. Qualidade > quantidade.\\n3. O tom da OutVibe: direto, energético, sem promessas exageradas.\\n4. Nunca produzas o conteúdo final — isso é trabalho do Copywriter.\\n5. Usa o projeto_id exacto que te for dado.\\n6. status DEVE ser exactamente um de: \\\\\\\"ok\\\\\\\" | \\\\\\\"erro\\\\\\\" | \\\\\\\"precisa_revisao\\\\\\\" (nunca \\\\\\\"completo\\\\\\\").\\n7. qualidade DEVE ser um inteiro 0-100 (não um objeto).\\n8. Em plano_de_conteudos usa campos: tipo, quantidade, prioridade, notas_para_copywriter, fotos_sugeridas.`;\n\nconst userText = [\n  'Analisa este projeto e devolve APENAS o JSON do plano.',\n  '',\n  `projeto_id: ${ctx.projeto_id}`,\n  `tipo_entrada: ${ctx.tipo_entrada}`,\n  `brief: ${ctx.brief || '(sem brief textual — usa a imagem / nome do ficheiro)'}`,\n  `arquivos: ${JSON.stringify(ctx.arquivos || [])}`,\n  ctx.foto_nome ? `foto_principal: ${ctx.foto_nome}` : 'foto_principal: nenhuma',\n  '',\n  'Se houver imagem em anexo neste pedido, analisa-a visualmente.'\n].join('\\n');\n\nconst content = [];\nif (ctx.imageBlock) content.push(ctx.imageBlock);\ncontent.push({ type: 'text', text: userText });\n\nconst body = {\n  model: 'claude-sonnet-4-5',\n  max_tokens: 4096,\n  system,\n  messages: [{ role: 'user', content }]\n};\n\nreturn [{ json: { projeto_id: ctx.projeto_id, anthropicBody: body } }];"
       },
       "id": "code-prompt",
       "name": "Code — prompt Diretor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2200, -80]
+      "position": [
+        2200,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -261,19 +297,25 @@
       "name": "HTTP — Claude (Diretor)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2440, -80],
+      "position": [
+        2440,
+        -80
+      ],
       "notesInFlow": true,
       "notes": "Credencial Anthropic OutVibe. Modelo claude-sonnet-4-5 — se 404, troca no Code — prompt Diretor."
     },
     {
       "parameters": {
-        "jsCode": "const projetoId = $('Code — prompt Diretor').item.json.projeto_id;\nconst resp = $input.first().json;\n\nconst text = (resp.content || [])\n  .filter(b => b.type === 'text')\n  .map(b => b.text)\n  .join('\\n')\n  .trim();\n\nlet parsed;\ntry {\n  const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = {\n    projeto_id: projetoId,\n    agente: 'diretor',\n    status: 'erro',\n    resultado: {},\n    qualidade: 0,\n    problemas: ['Resposta do Claude não era JSON válido: ' + e.message, text.slice(0, 500)],\n    proximo_agente: null\n  };\n}\n\nparsed.projeto_id = parsed.projeto_id || projetoId;\nparsed.agente = 'diretor';\n\nconst estado = parsed.status === 'ok' ? 'planeado' : (parsed.status === 'precisa_revisao' ? 'erro' : 'erro');\n\nreturn [{\n  json: {\n    projeto_id: projetoId,\n    estado,\n    plano: parsed,\n    status_agente: parsed.status,\n    mensagem_log: parsed.status === 'ok'\n      ? 'Plano do Diretor gravado'\n      : ('Diretor: ' + (parsed.status || 'erro'))\n  }\n}];"
+        "jsCode": "const projetoId = $('Code — prompt Diretor').item.json.projeto_id;\nconst resp = $input.first().json;\n\nconst text = (resp.content || [])\n  .filter(b => b.type === 'text')\n  .map(b => b.text)\n  .join('\\n')\n  .trim();\n\nlet parsed;\ntry {\n  const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = {\n    projeto_id: projetoId,\n    agente: 'diretor',\n    status: 'erro',\n    resultado: {},\n    qualidade: 0,\n    problemas: ['Resposta do Claude não era JSON válido: ' + e.message, text.slice(0, 500)],\n    proximo_agente: null\n  };\n}\n\nparsed.projeto_id = parsed.projeto_id || projetoId;\nparsed.agente = 'diretor';\n\n// Normalizar status (modelos às vezes devolvem \"completo\", \"success\", etc.)\nconst raw = String(parsed.status || '').toLowerCase().trim();\nconst okAliases = new Set(['ok', 'completo', 'complete', 'success', 'sucesso', 'done']);\nconst reviewAliases = new Set(['precisa_revisao', 'revisao', 'review', 'needs_review']);\nconst errAliases = new Set(['erro', 'error', 'fail', 'failed']);\n\nif (okAliases.has(raw)) parsed.status = 'ok';\nelse if (reviewAliases.has(raw)) parsed.status = 'precisa_revisao';\nelse if (errAliases.has(raw)) parsed.status = 'erro';\nelse if (parsed.resultado && (parsed.resultado.plano_de_conteudos || parsed.resultado.tema)) {\n  // Tem plano útil mas status fora do enum → tratar como ok\n  parsed.status = 'ok';\n  parsed.problemas = (parsed.problemas || []).concat(['status original normalizado: ' + raw]);\n} else {\n  parsed.status = 'erro';\n}\n\n// qualidade: schema pede 0-100 integer\nif (parsed.qualidade && typeof parsed.qualidade === 'object') {\n  const n = Number(parsed.qualidade.nota);\n  parsed.qualidade = Number.isFinite(n) ? Math.round(n * (n <= 10 ? 10 : 1)) : 0;\n}\n\nconst estado = parsed.status === 'ok' ? 'planeado' : 'erro';\n\nreturn [{\n  json: {\n    projeto_id: projetoId,\n    estado,\n    plano: parsed,\n    status_agente: parsed.status,\n    mensagem_log: parsed.status === 'ok'\n      ? 'Plano do Diretor gravado'\n      : ('Diretor: ' + (parsed.status || 'erro'))\n  }\n}];"
       },
       "id": "code-parse",
       "name": "Code — parse plano JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2680, -80]
+      "position": [
+        2680,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -305,7 +347,10 @@
       "name": "Supabase — gravar plano",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [2920, -80],
+      "position": [
+        2920,
+        -80
+      ],
       "notesInFlow": true,
       "notes": "Update por id. Campo plano (jsonb) + estado planeado|erro."
     },
@@ -338,60 +383,185 @@
       "name": "Supabase — log diretor",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [3160, -80]
+      "position": [
+        3160,
+        -80
+      ]
     }
   ],
   "connections": {
     "Manual — testar agora": {
-      "main": [[{ "node": "Supabase — projetos ingeridos", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase — projetos ingeridos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Schedule — a cada 2 min": {
-      "main": [[{ "node": "Supabase — projetos ingeridos", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase — projetos ingeridos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase — projetos ingeridos": {
-      "main": [[{ "node": "IF — há projeto?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF — há projeto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF — há projeto?": {
       "main": [
-        [{ "node": "Limit — 1 projeto", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Limit — 1 projeto",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
     "Limit — 1 projeto": {
-      "main": [[{ "node": "Supabase — arquivos do projeto", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase — arquivos do projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase — arquivos do projeto": {
-      "main": [[{ "node": "Code — montar contexto", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code — montar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code — montar contexto": {
-      "main": [[{ "node": "IF — tem foto?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "IF — tem foto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "IF — tem foto?": {
       "main": [
-        [{ "node": "Drive — download foto", "type": "main", "index": 0 }],
-        [{ "node": "Set — sem foto", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Drive — download foto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set — sem foto",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Drive — download foto": {
-      "main": [[{ "node": "Code — foto → base64", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code — foto → base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code — foto → base64": {
-      "main": [[{ "node": "Code — prompt Diretor", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code — prompt Diretor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Set — sem foto": {
-      "main": [[{ "node": "Code — prompt Diretor", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code — prompt Diretor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code — prompt Diretor": {
-      "main": [[{ "node": "HTTP — Claude (Diretor)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "HTTP — Claude (Diretor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "HTTP — Claude (Diretor)": {
-      "main": [[{ "node": "Code — parse plano JSON", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Code — parse plano JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Code — parse plano JSON": {
-      "main": [[{ "node": "Supabase — gravar plano", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase — gravar plano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase — gravar plano": {
-      "main": [[{ "node": "Supabase — log diretor", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase — log diretor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
