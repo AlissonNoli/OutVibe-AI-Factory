@@ -136,8 +136,16 @@ app.get('/api/fila', requireAuth, async (req, res) => {
     byProj[pub.projeto_id].publicacoes.push({
       id: pub.id,
       data_sugerida: pub.data_sugerida,
+      data_publicada: pub.data_publicada,
       estado: pub.estado,
       conteudo_id: pub.conteudo_id,
+      url_publicacao: pub.url_publicacao,
+      views: pub.views,
+      likes: pub.likes,
+      comentarios: pub.comentarios,
+      partilhas: pub.partilhas,
+      saves: pub.saves,
+      metricas_atualizadas_em: pub.metricas_atualizadas_em,
     });
   }
 
@@ -162,11 +170,30 @@ app.get('/api/fila', requireAuth, async (req, res) => {
 app.patch('/api/publicacoes/:id', requireAuth, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase não configurado' });
   const { id } = req.params;
+  const body = req.body || {};
   const patch = {};
-  if (req.body.estado) patch.estado = req.body.estado;
-  if (req.body.data_sugerida !== undefined) patch.data_sugerida = req.body.data_sugerida;
-  if (req.body.url_publicacao !== undefined) patch.url_publicacao = req.body.url_publicacao;
-  if (req.body.estado === 'publicado') patch.data_publicada = new Date().toISOString();
+
+  if (body.estado) patch.estado = body.estado;
+  if (body.data_sugerida !== undefined) patch.data_sugerida = body.data_sugerida;
+  if (body.url_publicacao !== undefined) patch.url_publicacao = body.url_publicacao || null;
+  if (body.estado === 'publicado') patch.data_publicada = new Date().toISOString();
+
+  const metricKeys = ['views', 'likes', 'comentarios', 'partilhas', 'saves'];
+  let hasMetrics = false;
+  for (const key of metricKeys) {
+    if (body[key] === undefined || body[key] === null || body[key] === '') continue;
+    const n = Number(body[key]);
+    if (!Number.isFinite(n) || n < 0) {
+      return res.status(400).json({ error: `${key} deve ser um número ≥ 0` });
+    }
+    patch[key] = Math.round(n);
+    hasMetrics = true;
+  }
+  if (hasMetrics) patch.metricas_atualizadas_em = new Date().toISOString();
+
+  if (!Object.keys(patch).length) {
+    return res.status(400).json({ error: 'Nada para atualizar' });
+  }
 
   const { data, error } = await supabase
     .from('publicacoes')

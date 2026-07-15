@@ -66,7 +66,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 3a — Copywriter — `03-copywriter.json` (testado)
 - [x] Fase 3b — Social Media Instagram — `04-social-media.json`
 - [x] Fase 4 — Output humano + calendário — `05-output.json` (ver `docs/setup/10-workflow-05.md`)
-- [ ] Fase 4b — **Dashboard de publicação humana** — app em `dashboard/` (PRD `docs/prd/001-dashboard-publicacao-humana.md`)
-- [ ] Fase 5 — Feedback manual de métricas
+- [x] Fase 4b — **Dashboard de publicação humana** — app em `dashboard/` (PRD `docs/prd/001-dashboard-publicacao-humana.md`)
+- [x] Fase 5 — Feedback manual de métricas (views/likes/etc. no dashboard → `publicacoes`)
 - [ ] Fase 6 — Vídeo (Whisper, FFmpeg, Agente Editor)
 - [ ] Fase 7 — Viralização, Publicador automático, Analytics
