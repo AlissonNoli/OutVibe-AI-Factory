@@ -1,0 +1,679 @@
+{
+  "name": "03 — Copywriter (Claude → texto-mãe)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trig",
+      "name": "Manual — testar agora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -120
+      ],
+      "notesInFlow": true,
+      "notes": "Execute para processar 1 projeto com estado=planeado."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "sched-trig",
+      "name": "Schedule — a cada 3 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "projetos",
+        "returnAll": false,
+        "limit": 5,
+        "filterType": "string",
+        "filterString": "estado=eq.planeado"
+      },
+      "id": "supa-list",
+      "name": "Supabase — projetos planeados",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        280,
+        0
+      ],
+      "notesInFlow": true,
+      "notes": "Credencial Supabase. Filter estado=planeado."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-tem",
+      "name": "IF — há projeto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "maxItems": 1
+      },
+      "id": "limit-1",
+      "name": "Limit — 1 projeto",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        760,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "arquivos",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=projeto_id=eq.{{ $json.id }}"
+      },
+      "id": "supa-arqs",
+      "name": "Supabase — arquivos do projeto",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const projeto = $('Limit — 1 projeto').item.json;\nconst arquivos = $input.all().map(i => i.json);\nconst lista = arquivos.map(a => ({ nome: a.nome, tipo: a.tipo, drive_file_id: a.drive_file_id }));\nconst foto = lista.find(a => a.tipo === 'foto') || null;\n\nreturn [{\n  json: {\n    projeto_id: projeto.id,\n    brief: projeto.brief || '',\n    tipo_entrada: projeto.tipo_entrada,\n    plano: projeto.plano,\n    arquivos: lista,\n    foto_drive_id: foto ? foto.drive_file_id : null,\n    foto_nome: foto ? foto.nome : null,\n    foto_mime: 'image/jpeg'\n  }\n}];"
+      },
+      "id": "code-ctx",
+      "name": "Code — montar contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.foto_drive_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-foto",
+      "name": "IF — tem foto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1480,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.foto_drive_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {}
+          }
+        }
+      },
+      "id": "drive-dl",
+      "name": "Drive — download foto",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1720,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Code — montar contexto').item.json;\nconst bin = items[0].binary && items[0].binary.data;\nlet mediaType = (bin && bin.mimeType) ? bin.mimeType : ctx.foto_mime;\nif (mediaType === 'image/jpg') mediaType = 'image/jpeg';\n\nlet imageBlock = null;\nif (bin) {\n  const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  imageBlock = {\n    type: 'image',\n    source: { type: 'base64', media_type: mediaType, data: buffer.toString('base64') }\n  };\n}\n\nreturn [{ json: { ...ctx, imageBlock } }];"
+      },
+      "id": "code-b64",
+      "name": "Code — foto → base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "x1",
+              "name": "projeto_id",
+              "value": "={{ $json.projeto_id }}",
+              "type": "string"
+            },
+            {
+              "id": "x2",
+              "name": "brief",
+              "value": "={{ $json.brief }}",
+              "type": "string"
+            },
+            {
+              "id": "x3",
+              "name": "plano",
+              "value": "={{ $json.plano }}",
+              "type": "object"
+            },
+            {
+              "id": "x4",
+              "name": "arquivos",
+              "value": "={{ $json.arquivos }}",
+              "type": "array"
+            },
+            {
+              "id": "x5",
+              "name": "foto_nome",
+              "value": "={{ $json.foto_nome }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-sem-foto",
+      "name": "Set — sem foto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1720,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nconst system = \"# Agente Copywriter \\u2014 v0.1\\n\\n## Papel\\n\\u00c9s o Agente Copywriter da OutVibe. Recebes o plano do Diretor e produzes o texto-m\\u00e3e de cada conte\\u00fado. Nunca publicas e nunca adaptas por plataforma \\u2014 isso \\u00e9 o Agente Social Media.\\n\\n## Sa\\u00edda\\nDevolve APENAS JSON (sem markdown) com:\\nprojeto_id, agente=\\\"copywriter\\\", status (\\\"ok\\\"|\\\"erro\\\"|\\\"precisa_revisao\\\"),\\nresultado.conteudos[] com: tipo, hook, corpo, cta, hashtags_semente[], texto_alternativo_foto,\\nqualidade (inteiro 0-100), problemas[], proximo_agente=\\\"social_media\\\"\\n\\n## Regras\\n1. Hook primeiro. Se o hook n\\u00e3o prende, o resto n\\u00e3o existe.\\n2. Escreve como se falasses com UMA pessoa.\\n3. Zero clich\\u00e9s de fitness.\\n4. Frases curtas. Cortar 20%.\\n5. Sem promessas de resultados garantidos.\\n6. status DEVE ser exactamente ok | erro | precisa_revisao (nunca \\\"completo\\\").\\n7. qualidade \\u00e9 inteiro 0-100, n\\u00e3o objeto.\\n8. Produz um texto-m\\u00e3e por item do plano_de_conteudos do Diretor (m\\u00e1x 5).\\n9. Usa o projeto_id exacto fornecido.\";\n\nconst userText = [\n  'Com base no plano do Diretor abaixo, produz os textos-mãe. Devolve APENAS JSON.',\n  '',\n  'projeto_id: ' + ctx.projeto_id,\n  'brief: ' + (ctx.brief || ''),\n  'arquivos: ' + JSON.stringify(ctx.arquivos || []),\n  ctx.foto_nome ? ('foto_principal: ' + ctx.foto_nome) : 'foto_principal: nenhuma',\n  '',\n  'plano_do_diretor:',\n  JSON.stringify(ctx.plano || {}, null, 2),\n  '',\n  'Se houver imagem em anexo, usa-a para escrever com especificidade visual.'\n].join('\\n');\n\nconst content = [];\nif (ctx.imageBlock) content.push(ctx.imageBlock);\ncontent.push({ type: 'text', text: userText });\n\nconst body = {\n  model: 'claude-sonnet-4-5',\n  max_tokens: 8192,\n  system,\n  messages: [{ role: 'user', content }]\n};\n\nreturn [{ json: { projeto_id: ctx.projeto_id, anthropicBody: body } }];"
+      },
+      "id": "code-prompt",
+      "name": "Code — prompt Copywriter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropicBody }}",
+        "options": {}
+      },
+      "id": "http-claude",
+      "name": "HTTP — Claude (Copywriter)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        -80
+      ],
+      "notesInFlow": true,
+      "notes": "Credencial Anthropic. Modelo no Code — prompt Copywriter."
+    },
+    {
+      "parameters": {
+        "jsCode": "const projetoId = $('Code — prompt Copywriter').item.json.projeto_id;\nconst resp = $input.first().json;\n\nconst text = (resp.content || [])\n  .filter(b => b.type === 'text')\n  .map(b => b.text)\n  .join('\\n')\n  .trim();\n\nlet parsed;\ntry {\n  const cleaned = text.replace(/^```json\\s*/i, '').replace(/```$/i, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = {\n    projeto_id: projetoId,\n    agente: 'copywriter',\n    status: 'erro',\n    resultado: { conteudos: [] },\n    qualidade: 0,\n    problemas: ['JSON inválido: ' + e.message, text.slice(0, 500)],\n    proximo_agente: null\n  };\n}\n\nparsed.projeto_id = parsed.projeto_id || projetoId;\nparsed.agente = 'copywriter';\n\nconst raw = String(parsed.status || '').toLowerCase().trim();\nconst okAliases = new Set(['ok', 'completo', 'complete', 'success', 'sucesso', 'done']);\nconst reviewAliases = new Set(['precisa_revisao', 'revisao', 'review', 'needs_review']);\nif (okAliases.has(raw)) parsed.status = 'ok';\nelse if (reviewAliases.has(raw)) parsed.status = 'precisa_revisao';\nelse if (['erro', 'error', 'fail', 'failed'].includes(raw)) parsed.status = 'erro';\nelse if (parsed.resultado && Array.isArray(parsed.resultado.conteudos) && parsed.resultado.conteudos.length) {\n  parsed.status = 'ok';\n} else {\n  parsed.status = 'erro';\n}\n\nif (parsed.qualidade && typeof parsed.qualidade === 'object') {\n  const n = Number(parsed.qualidade.nota);\n  parsed.qualidade = Number.isFinite(n) ? Math.round(n * (n <= 10 ? 10 : 1)) : 0;\n}\n\nconst estado = parsed.status === 'ok' ? 'escrito' : 'erro';\nconst conteudos = (parsed.resultado && parsed.resultado.conteudos) ? parsed.resultado.conteudos : [];\n\nreturn [{\n  json: {\n    projeto_id: projetoId,\n    estado,\n    saida: parsed,\n    conteudos,\n    status_agente: parsed.status,\n    mensagem_log: parsed.status === 'ok'\n      ? ('Copywriter: ' + conteudos.length + ' texto(s)-mãe')\n      : ('Copywriter: ' + parsed.status)\n  }\n}];"
+      },
+      "id": "code-parse",
+      "name": "Code — parse copy JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2680,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $input.first().json;\nconst rows = [];\n\nif (base.status_agente === 'ok' && base.conteudos.length) {\n  for (const c of base.conteudos) {\n    rows.push({\n      json: {\n        projeto_id: base.projeto_id,\n        estado: base.estado,\n        status_agente: base.status_agente,\n        mensagem_log: base.mensagem_log,\n        saida: base.saida,\n        insert_mode: 'conteudo',\n        agente: 'copywriter',\n        tipo: c.tipo || 'post_instagram',\n        conteudo: c,\n        versao_prompt: 'copywriter-v0.1'\n      }\n    });\n  }\n}\n\n// always one update+log marker at end\nrows.push({\n  json: {\n    projeto_id: base.projeto_id,\n    estado: base.estado,\n    status_agente: base.status_agente,\n    mensagem_log: base.mensagem_log,\n    saida: base.saida,\n    insert_mode: 'finalizar',\n    agente: 'copywriter',\n    tipo: 'lote',\n    conteudo: base.saida,\n    versao_prompt: 'copywriter-v0.1'\n  }\n});\n\nreturn rows;"
+      },
+      "id": "code-explode",
+      "name": "Code — explodir conteúdos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2920,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.insert_mode }}",
+              "rightValue": "conteudo",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-insert",
+      "name": "IF — insert conteúdo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3160,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "conteudos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $json.projeto_id }}"
+            },
+            {
+              "fieldId": "agente",
+              "fieldValue": "copywriter"
+            },
+            {
+              "fieldId": "tipo",
+              "fieldValue": "={{ $json.tipo }}"
+            },
+            {
+              "fieldId": "conteudo",
+              "fieldValue": "={{ $json.conteudo }}"
+            },
+            {
+              "fieldId": "versao_prompt",
+              "fieldValue": "copywriter-v0.1"
+            }
+          ]
+        }
+      },
+      "id": "supa-ins",
+      "name": "Supabase — gravar conteúdo",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3400,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "projetos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Code — parse copy JSON').item.json.projeto_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "estado",
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.estado }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-upd",
+      "name": "Supabase — estado escrito",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3400,
+        40
+      ],
+      "notesInFlow": true,
+      "notes": "Só no item finalizar (ramo false do IF)."
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.projeto_id }}"
+            },
+            {
+              "fieldId": "agente",
+              "fieldValue": "copywriter"
+            },
+            {
+              "fieldId": "nivel",
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.status_agente === 'ok' ? 'info' : 'warn' }}"
+            },
+            {
+              "fieldId": "mensagem",
+              "fieldValue": "={{ $('Code — parse copy JSON').item.json.mensagem_log || 'Copywriter concluído' }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-log",
+      "name": "Supabase — log copywriter",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3640,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Manual — testar agora": {
+      "main": [
+        [
+          {
+            "node": "Supabase — projetos planeados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule — a cada 3 min": {
+      "main": [
+        [
+          {
+            "node": "Supabase — projetos planeados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — projetos planeados": {
+      "main": [
+        [
+          {
+            "node": "IF — há projeto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — há projeto?": {
+      "main": [
+        [
+          {
+            "node": "Limit — 1 projeto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Limit — 1 projeto": {
+      "main": [
+        [
+          {
+            "node": "Supabase — arquivos do projeto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — arquivos do projeto": {
+      "main": [
+        [
+          {
+            "node": "Code — montar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — montar contexto": {
+      "main": [
+        [
+          {
+            "node": "IF — tem foto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — tem foto?": {
+      "main": [
+        [
+          {
+            "node": "Drive — download foto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set — sem foto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive — download foto": {
+      "main": [
+        [
+          {
+            "node": "Code — foto → base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — foto → base64": {
+      "main": [
+        [
+          {
+            "node": "Code — prompt Copywriter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set — sem foto": {
+      "main": [
+        [
+          {
+            "node": "Code — prompt Copywriter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — prompt Copywriter": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Claude (Copywriter)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Claude (Copywriter)": {
+      "main": [
+        [
+          {
+            "node": "Code — parse copy JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — parse copy JSON": {
+      "main": [
+        [
+          {
+            "node": "Code — explodir conteúdos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — explodir conteúdos": {
+      "main": [
+        [
+          {
+            "node": "IF — insert conteúdo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — insert conteúdo?": {
+      "main": [
+        [
+          {
+            "node": "Supabase — gravar conteúdo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase — estado escrito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — estado escrito": {
+      "main": [
+        [
+          {
+            "node": "Supabase — log copywriter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "outvibe": {
+      "fase": 3,
+      "prompt": "agents/prompts/copywriter.md",
+      "modelo": "claude-sonnet-4-5"
+    }
+  },
+  "pinData": {},
+  "tags": []
+}

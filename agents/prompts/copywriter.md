@@ -43,3 +43,5 @@ Mensagem no formato `agents/schema.json` com:
 3. Zero clichés de fitness ("no pain no gain", "supera-te").
 4. Frases curtas. Cortar sempre 20% do que escreveste primeiro.
 5. Sem promessas de resultados garantidos.
+6. `status` **só** pode ser: `ok` | `erro` | `precisa_revisao` (nunca `completo`).
+7. `qualidade` é um **inteiro 0–100**, não um objeto.
