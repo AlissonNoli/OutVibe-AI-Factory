@@ -1,86 +1,66 @@
-# Pré-requisitos antes do Workflow 01 (Ingestão)
+# Passo a passo — antes do Workflow 01
 
-Antes de desenhar/exportar `n8n/workflows/01-ingestao.json`, completar estes 3 passos na ordem abaixo.
+Faz **nesta ordem**. Cada secção termina com “como saber que está feito”.
 
-Checklist rápido:
+| # | O quê | Onde |
+|---|--------|------|
+| A | Projeto + tabelas | Supabase |
+| B | Pastas OUTVIBE | Google Drive |
+| C | OAuth do Drive | Google Cloud Console |
+| D | API key Claude | Anthropic |
+| E | As 3 credenciais | n8n |
 
-- [ ] Credenciais no n8n: Anthropic, Google Drive (OAuth), Supabase
-- [ ] Projeto Supabase criado + migração `db/migrations/001_init.sql`
-- [ ] Pastas no Google Drive: `OUTVIBE/{Inbox,Processando,Pronto_Para_Publicar,Publicado}`
+Checklist:
 
----
+- [ ] A — Supabase + `001_init.sql`
+- [ ] B — Pastas Drive + IDs anotados
+- [ ] C — Client OAuth Google (redirect URI do n8n)
+- [ ] D — Chave Anthropic
+- [ ] E — Credenciais no n8n (Anthropic, Drive, Supabase)
 
-## 1. Credenciais no n8n
-
-Abrir `https://n8n.SEU_DOMINIO` → **Credentials** → criar as três abaixo.
-
-### Anthropic API
-
-| Campo | Valor |
-|-------|--------|
-| Tipo | Anthropic |
-| Nome sugerido | `Anthropic OutVibe` |
-| API Key | chave de [console.anthropic.com](https://console.anthropic.com/) |
-
-Usada pelos agentes (Diretor, Copywriter, Social Media) via nó Anthropic / HTTP Request.
-
-### Google Drive (OAuth2)
-
-1. No [Google Cloud Console](https://console.cloud.google.com/): criar (ou reutilizar) um projeto → ativar **Google Drive API**.
-2. **APIs & Services → Credentials → OAuth client ID** (tipo *Web application*).
-3. Em **Authorized redirect URIs**, colar o URL OAuth que o n8n mostra ao criar a credencial (formato típico: `https://n8n.SEU_DOMINIO/rest/oauth2-credential/callback`).
-4. No n8n: **Credentials → Google Drive OAuth2 API** → Client ID + Client Secret → Connect → autorizar a conta Google da OutVibe.
-
-| Campo | Valor |
-|-------|--------|
-| Nome sugerido | `Google Drive OutVibe` |
-| Scopes | Drive (ler/escrever/mover ficheiros nas pastas OUTVIBE) |
-
-Guardar o **Folder ID** de cada pasta criada no passo 3 (aparece na URL do Drive: `.../folders/<ID>`). O Workflow 01 vai fixar pelo menos o de `Inbox` e `Processando`.
-
-### Supabase
-
-1. No projeto Supabase (passo 2): **Project Settings → API**.
-2. No n8n: credencial **Header Auth** (ou nó Supabase, se disponível na versão instalada).
-
-| Campo | Valor |
-|-------|--------|
-| Nome sugerido | `Supabase OutVibe` |
-| URL base | `https://<PROJECT_REF>.supabase.co` |
-| Header | `apikey` = **service_role** key |
-| Header extra | `Authorization` = `Bearer <service_role>` |
-
-Usar a **service_role** (nunca a `anon` no n8n): o pipeline precisa de escrita sem RLS do utilizador final. Não commitar a service_role no repo.
-
-Referência: as variáveis estão comentadas em `.env.example` — vivem só dentro do n8n, não no `.env` da VPS.
+Detalhe expandido: `docs/setup/01-supabase.md`, `02-google-drive.md`, `03-credenciais-n8n.md`.
 
 ---
 
-## 2. Projeto Supabase + migração
+## A. Supabase (10–15 min)
 
-1. Criar projeto em [supabase.com](https://supabase.com) (região próxima de PT/EU, ex. `eu-west-1` / Frankfurt).
-2. **SQL Editor → New query** → colar o conteúdo de `db/migrations/001_init.sql` → Run.
-3. Confirmar tabelas: `projetos`, `arquivos`, `conteudos`, `publicacoes`, `logs`.
+1. Abre [supabase.com](https://supabase.com) → **Start your project** / Sign in.
+2. **New project**
+   - Name: `outvibe-ai-factory` (ou similar)
+   - Database password: gera uma forte e **guarda-a** (não vais precisar dela no n8n, mas sim se usares SQL direto)
+   - Region: **West EU (Ireland)** ou **Central EU (Frankfurt)** — a mais perto de PT
+   - Plan: Free
+3. Espera o projeto ficar **Healthy** (1–2 min).
+4. Menu esquerdo → **SQL Editor** → **New query**.
+5. Abre no repo o ficheiro `db/migrations/001_init.sql`, copia **tudo**, cola no editor → **Run**.
+6. Confirma: menu **Table Editor** deve mostrar `projetos`, `arquivos`, `conteudos`, `publicacoes`, `logs`.
+7. **Project Settings** (ícone engrenagem) → **API** — anota:
+   - **Project URL** → `https://xxxxx.supabase.co`
+   - **service_role** (secret) → só colar no n8n; **nunca** no Git
 
-O Workflow 01 escreve em `projetos` (+ opcionalmente `arquivos` e `logs`) assim que um ficheiro entra em `Inbox`.
+✅ Feito quando as 5 tabelas existem e tens URL + `service_role`.
 
 ---
 
-## 3. Estrutura de pastas no Google Drive
+## B. Pastas no Google Drive (5 min)
 
-Criar (partilha com a conta OAuth usada no n8n):
+Na **mesma conta Google** que vais autorizar no n8n:
+
+1. [drive.google.com](https://drive.google.com) → **Novo** → **Pasta** → nome `OUTVIBE`.
+2. Entra em `OUTVIBE` e cria 4 pastas (nomes exactos):
 
 ```
-OUTVIBE/
-├── Inbox/                 ← trigger do Workflow 01
-├── Processando/           ← após registo no Supabase
-├── Pronto_Para_Publicar/  ← output humano (fase 4)
-└── Publicado/             ← após publicação manual
+Inbox
+Processando
+Pronto_Para_Publicar
+Publicado
 ```
 
-Convenção de nomes: exactamente estes segmentos (case-sensitive no código do workflow).
+3. Abre cada pasta; na barra de endereço copia o ID:
 
-Anotar:
+`https://drive.google.com/drive/folders/`**`ESTE_E_O_ID`**
+
+4. Preenche:
 
 | Pasta | Folder ID |
 |-------|-----------|
@@ -90,14 +70,106 @@ Anotar:
 | Pronto_Para_Publicar | |
 | Publicado | |
 
-Opcional: `scripts/criar-pastas-drive.md` descreve o mesmo layout para quem cria à mão ou via API.
+O Workflow 01 usa sobretudo **Inbox** (trigger) e **Processando** (destino do move).
+
+✅ Feito quando as 5 pastas existem e os IDs estão anotados.
 
 ---
 
-## Pronto para o Workflow 01
+## C. Google Cloud — OAuth para o Drive (10–15 min)
 
-Quando os 3 itens estiverem feitos:
+Precisas do n8n já acessível em HTTPS (ex. `https://n8n.outvibe.pt`).
 
-1. Desenhar no n8n: trigger Drive (`Inbox`) → insert Supabase → mover para `Processando`.
-2. Exportar JSON para `n8n/workflows/01-ingestao.json` e commit.
-3. Atualizar o roadmap no `README.md` (Fase 1).
+1. [console.cloud.google.com](https://console.cloud.google.com/) → cria projeto `outvibe-n8n` (ou escolhe um existente).
+2. **APIs & Services → Library** → procura **Google Drive API** → **Enable**.
+3. **APIs & Services → OAuth consent screen**
+   - User type: **External** (ou Internal se for Google Workspace)
+   - App name: `OutVibe n8n`
+   - User support email + developer contact: o teu email
+   - Scopes: adiciona `.../auth/drive` (ou o que o n8n pedir ao conectar)
+   - Test users: adiciona o email da conta Google do passo B
+   - Publishing status: **Testing** chega para o MVP
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID**
+   - Application type: **Web application**
+   - Name: `n8n OutVibe`
+   - **Authorized redirect URIs** → adiciona exactamente:
+
+```
+https://n8n.SEU_DOMINIO/rest/oauth2-credential/callback
+```
+
+   Substitui `n8n.SEU_DOMINIO` pelo teu (ex. `n8n.outvibe.pt`).  
+   Dica: no n8n, ao criar a credencial Drive, o ecrã mostra este URL — copia de lá para não errar.
+5. Guarda **Client ID** e **Client Secret**.
+
+✅ Feito quando tens Client ID + Secret e o redirect URI aponta para o teu n8n.
+
+---
+
+## D. Anthropic API key (2 min)
+
+1. [console.anthropic.com](https://console.anthropic.com/) → sign in.
+2. **API Keys** → **Create Key** → nome `outvibe-n8n`.
+3. Copia a chave (`sk-ant-...`) — só aparece uma vez.
+
+✅ Feito quando tens a `sk-ant-...` guardada fora do Git.
+
+---
+
+## E. Credenciais dentro do n8n (10 min)
+
+Abre `https://n8n.SEU_DOMINIO` (já com admin criado).
+
+### E1. Anthropic
+
+1. Menu esquerdo → **Credentials** → **Add credential**.
+2. Procura **Anthropic** → seleciona.
+3. Name: `Anthropic OutVibe`
+4. API Key: cola a chave do passo D → **Save**.
+
+### E2. Google Drive
+
+1. **Add credential** → **Google Drive OAuth2 API**.
+2. Name: `Google Drive OutVibe`
+3. Cola Client ID + Client Secret do passo C.
+4. Confirma que o **OAuth Redirect URL** mostrado no n8n é o mesmo que registaste no Google Cloud.
+5. **Sign in with Google** → escolhe a conta do passo B → Allow.
+6. **Save**.
+
+### E3. Supabase
+
+O nó nativo “Supabase” pode variar por versão. Forma estável para o MVP:
+
+1. **Add credential** → **Header Auth**.
+2. Name: `Supabase OutVibe`
+3. Name (header): `apikey`
+4. Value: a **service_role** do passo A
+5. **Save**.
+
+Nos HTTP Request nodes do workflow, URL base:
+
+```
+https://<PROJECT_REF>.supabase.co/rest/v1/
+```
+
+Headers em cada request (além da credencial `apikey`):
+
+| Header | Valor |
+|--------|--------|
+| `Authorization` | `Bearer <service_role>` |
+| `Content-Type` | `application/json` |
+| `Prefer` | `return=representation` (em inserts) |
+
+Se a tua versão do n8n tiver credencial/nó **Supabase**, podes usá-la com Host = Project URL e Service Role Secret = `service_role`.
+
+✅ Feito quando as 3 credenciais aparecem em Credentials sem erro de auth.
+
+---
+
+## Pronto para desenhar o Workflow 01
+
+Só depois de A–E:
+
+1. No n8n: trigger **Google Drive** (pasta `Inbox`) → **HTTP Request** insert em `projetos` → **Google Drive** move para `Processando`.
+2. Exportar → `n8n/workflows/01-ingestao.json` → commit.
+3. Marcar Fase 0b / Fase 1 no `README.md`.
