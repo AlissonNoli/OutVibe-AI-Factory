@@ -20,7 +20,7 @@ Checklist:
 - [ ] D — Chave Anthropic
 - [ ] E — Credenciais no n8n (Anthropic, Drive, Supabase)
 
-Detalhe: `04-vps-secrets.md`, `01-supabase.md`, `02-google-drive.md`, `03-credenciais-n8n.md`.
+Detalhe: `05-onde-conseguir-chaves.md` (links e cliques), `04-vps-secrets.md`, `01`–`03`.
 
 ---
 

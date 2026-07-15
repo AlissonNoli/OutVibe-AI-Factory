@@ -43,7 +43,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 2. Na VPS: copiar `.env.example` → `.env` e preencher **só** secrets de infra — ver `docs/setup/04-vps-secrets.md`.
 3. `docker compose up -d`
 4. Abrir `https://n8n.SEU_DOMINIO`, criar conta de admin.
-5. APIs externas (Anthropic, Drive, Supabase) → **Credentials** no n8n (não no `.env`).
+5. APIs externas (Anthropic, Drive, Supabase) → **Credentials** no n8n (não no `.env`). Onde obter cada chave: `docs/setup/05-onde-conseguir-chaves.md`.
 6. Restantes pré-requisitos do Workflow 01: `docs/setup/00-pre-workflow-01.md`.
 7. Importar workflows de `n8n/workflows/` + migração `db/migrations/001_init.sql`.
 

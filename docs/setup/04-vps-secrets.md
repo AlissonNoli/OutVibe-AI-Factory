@@ -1,5 +1,7 @@
 # Secrets na VPS — o que vai onde
 
+**Onde obter cada chave (sites e cliques):** `docs/setup/05-onde-conseguir-chaves.md`.
+
 Há **dois sítios** de secrets. Não mistures.
 
 ```
