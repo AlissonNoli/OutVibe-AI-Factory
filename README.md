@@ -60,7 +60,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 0a — Fundações no repo (Docker Compose, Caddy, schema SQL, prompts, ADRs)
 - [x] Fase 0b — Config live (Supabase, pastas Drive, OAuth Drive + Anthropic + Supabase no n8n)
 - [x] Fase 1 — Ingestão + BD (Workflow 01) — testado: Drive Inbox → `projetos`/`arquivos`/`logs` → Processando
-- [ ] Fase 2 — Agente Diretor (Claude API já ligada no n8n)
+- [ ] Fase 2 — Agente Diretor — JSON em `n8n/workflows/02-diretor.json` (ver `docs/setup/07-workflow-02.md`)
 - [ ] Fase 3 — Copywriter + Social Media
 - [ ] Fase 4 — Output humano + calendário
 - [ ] Fase 5 — Feedback manual de métricas
