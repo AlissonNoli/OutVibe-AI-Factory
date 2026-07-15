@@ -36,6 +36,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - **Supabase** — metadados e histórico
 - **Google Drive** — entrada/saída de ficheiros
 - **Caddy** — HTTPS automático para os webhooks do n8n
+- **Dashboard** (`dashboard/`) — UI humana para publicar no Instagram (Fase 4b)
 
 ## Como correr
 
@@ -64,8 +65,8 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 2 — Agente Diretor — `02-diretor.json` (testado; normalizar `status` completo→ok)
 - [x] Fase 3a — Copywriter — `03-copywriter.json` (testado)
 - [x] Fase 3b — Social Media Instagram — `04-social-media.json`
-- [ ] Fase 4 — Output humano + calendário — `05-output.json` (ver `docs/setup/10-workflow-05.md`)
-- [ ] Fase 4b — **Dashboard de publicação humana** (foto + legendas IG + horários + marcar publicado) — `docs/prd/001-dashboard-publicacao-humana.md`
+- [x] Fase 4 — Output humano + calendário — `05-output.json` (ver `docs/setup/10-workflow-05.md`)
+- [ ] Fase 4b — **Dashboard de publicação humana** — app em `dashboard/` (PRD `docs/prd/001-dashboard-publicacao-humana.md`)
 - [ ] Fase 5 — Feedback manual de métricas
 - [ ] Fase 6 — Vídeo (Whisper, FFmpeg, Agente Editor)
 - [ ] Fase 7 — Viralização, Publicador automático, Analytics

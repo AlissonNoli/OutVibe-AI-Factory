@@ -4,4 +4,4 @@ Documentos de produto (o quê / para quem / sucesso). Decisões técnicas → `d
 
 | ID | Título | Estado |
 |----|--------|--------|
-| [001](./001-dashboard-publicacao-humana.md) | Dashboard de publicação humana | Proposto |
+| [001](./001-dashboard-publicacao-humana.md) | Dashboard de publicação humana | Em implementação (`dashboard/`) |

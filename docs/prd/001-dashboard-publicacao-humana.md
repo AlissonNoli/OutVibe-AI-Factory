@@ -1,6 +1,6 @@
 # PRD 001 — Dashboard de publicação humana (OutVibe)
 
-**Estado:** Proposto  
+**Estado:** Em implementação (MVP em `dashboard/`)  
 **Data:** 2026-07-15  
 **Autor:** feedback pós-MVP pipeline (Fases 1–4)  
 **Relacionado:** ADR 001 (pipeline de texto), Workflows 01–05
