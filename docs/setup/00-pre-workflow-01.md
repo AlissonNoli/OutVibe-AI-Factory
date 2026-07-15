@@ -4,21 +4,33 @@ Faz **nesta ordem**. Cada secção termina com “como saber que está feito”.
 
 | # | O quê | Onde |
 |---|--------|------|
+| 0 | `.env` na VPS (domínio, encryption key, Postgres) | `docs/setup/04-vps-secrets.md` |
 | A | Projeto + tabelas | Supabase |
 | B | Pastas OUTVIBE | Google Drive |
 | C | OAuth do Drive | Google Cloud Console |
 | D | API key Claude | Anthropic |
-| E | As 3 credenciais | n8n |
+| E | As 3 credenciais | n8n (não no `.env`) |
 
 Checklist:
 
+- [ ] 0 — `.env` na VPS + `docker compose up -d` + n8n em HTTPS
 - [ ] A — Supabase + `001_init.sql`
 - [ ] B — Pastas Drive + IDs anotados
 - [ ] C — Client OAuth Google (redirect URI do n8n)
 - [ ] D — Chave Anthropic
 - [ ] E — Credenciais no n8n (Anthropic, Drive, Supabase)
 
-Detalhe expandido: `docs/setup/01-supabase.md`, `02-google-drive.md`, `03-credenciais-n8n.md`.
+Detalhe: `04-vps-secrets.md`, `01-supabase.md`, `02-google-drive.md`, `03-credenciais-n8n.md`.
+
+---
+
+## 0. Secrets na VPS (antes de tudo)
+
+Na VPS: `cp .env.example .env` → preencher só `N8N_DOMAIN`, `N8N_ENCRYPTION_KEY`, `POSTGRES_*` → `docker compose up -d`.
+
+APIs (Anthropic, Drive, Supabase) **não** vão para o `.env`. Passo a passo: **`docs/setup/04-vps-secrets.md`**.
+
+✅ Feito quando `https://n8n.SEU_DOMINIO` abre e pedes criar o admin.
 
 ---
 

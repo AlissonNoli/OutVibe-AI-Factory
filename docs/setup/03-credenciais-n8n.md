@@ -1,6 +1,8 @@
 # D + E — Anthropic + credenciais no n8n
 
-Pré-requisito: n8n a responder em HTTPS (`docker compose up -d` na VPS, DNS a apontar).
+Pré-requisito: VPS com `.env` (só infra) e n8n em HTTPS — ver `04-vps-secrets.md`.
+
+As chaves abaixo **não** se metem no `.env` da VPS: vão para **Credentials** na UI do n8n (ficam encriptadas com `N8N_ENCRYPTION_KEY`).
 
 ## D. Anthropic
 

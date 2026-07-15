@@ -39,13 +39,13 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 
 ## Como correr
 
-1. Copiar `.env.example` para `.env` e preencher.
-2. Apontar um subdomínio (ex: `n8n.outvibe.pt`) para o IP do VPS.
+1. Apontar um subdomínio (ex: `n8n.outvibe.pt`) para o IP do VPS.
+2. Na VPS: copiar `.env.example` → `.env` e preencher **só** secrets de infra — ver `docs/setup/04-vps-secrets.md`.
 3. `docker compose up -d`
 4. Abrir `https://n8n.SEU_DOMINIO`, criar conta de admin.
-5. Completar os pré-requisitos do Workflow 01 — passo a passo em `docs/setup/00-pre-workflow-01.md`.
-6. Importar os workflows de `n8n/workflows/` (quando existirem).
-7. Correr a migração `db/migrations/001_init.sql` no SQL Editor do Supabase (também listada no setup).
+5. APIs externas (Anthropic, Drive, Supabase) → **Credentials** no n8n (não no `.env`).
+6. Restantes pré-requisitos do Workflow 01: `docs/setup/00-pre-workflow-01.md`.
+7. Importar workflows de `n8n/workflows/` + migração `db/migrations/001_init.sql`.
 
 ## Convenções
 
