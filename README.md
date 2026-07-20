@@ -51,7 +51,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 ## Convenções
 
 - **Workflows**: qualquer alteração no n8n é exportada como JSON para `n8n/workflows/` e commitada.
-- **Prompts**: são código. Cada alteração a `agents/prompts/*.md` é um commit — o Analytics vai comparar versões.
+- **Prompts**: são código. Cada alteração a `agents/prompts/*.md` é um commit — o Analytics vai comparar versões. Após editar, corre `node scripts/sync-prompts-to-workflows.mjs` e reimporta os workflows 02–04 no n8n. Skills curadas: `agents/skills/`.
 - **Decisões técnicas**: registadas em `docs/decisions/` (ADRs numerados).
 - **Produto / PRDs**: `docs/prd/` (ex. dashboard de publicação).
 - **Commits**: `feat:`, `fix:`, `docs:`, `chore:`.

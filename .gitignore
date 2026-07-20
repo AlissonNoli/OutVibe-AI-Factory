@@ -3,6 +3,8 @@ dashboard/.env
 *.log
 node_modules/
 dashboard/node_modules/
+# Clones locais de skills externas (ver agents/skills/README.md)
+agents/skills/_vendor/
 # Nunca versionar media
 *.mp4
 *.mov

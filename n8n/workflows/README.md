@@ -3,9 +3,9 @@
 Cada workflow do n8n é exportado como JSON para esta pasta e commitado. Convenção de nomes:
 
 - `01-ingestao.json` — Drive trigger → registo no Supabase → mover para Processando
-- `02-diretor.json` — projetos `ingerido` → Claude (`agents/prompts/diretor.md`) → `plano` + `estado=planeado`
-- `03-copywriter.json` — projetos `planeado` → Claude (`copywriter.md`) → `conteudos` + `estado=escrito`
-- `04-social-media.json` — projetos `escrito` → Claude Instagram only → `conteudos`/`publicacoes` + `estado=adaptado`
+- `02-diretor.json` — projetos `ingerido` → Claude (`agents/prompts/diretor.md` v0.2) → `plano` + `estado=planeado`
+- `03-copywriter.json` — projetos `planeado` → Claude (`copywriter.md` v0.2) → `conteudos` + `estado=escrito`
+- `04-social-media.json` — projetos `escrito` → Claude Instagram only (`social-media.md` v0.2) → `conteudos`/`publicacoes` + `estado=adaptado`
 - `05-output.json` — `adaptado` → `.md` em Pronto_Para_Publicar (Drive) → `estado=pronto`
 
 **Antes do `01-ingestao`:** credenciais Drive + Supabase no n8n, migração SQL, pastas Drive (`docs/setup/00-pre-workflow-01.md`). Anthropic **não** é necessário para o 01.
