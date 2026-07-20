@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OutVibe — Publicar</title>
+  <title>OutVibe — Fábrica</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -15,8 +15,8 @@
   <div id="login-view" class="login-shell hidden">
     <form id="login-form" class="login-card">
       <p class="brand">OutVibe</p>
-      <h1>Publicar</h1>
-      <p class="lede">Fila Instagram — legenda, horário, marcar feito.</p>
+      <h1>Fábrica</h1>
+      <p class="lede">Enviar fotos + brief, e publicar no Instagram.</p>
       <label>
         Password
         <input type="password" id="password" autocomplete="current-password" required />
@@ -30,21 +30,47 @@
     <header class="top">
       <div>
         <p class="brand">OutVibe</p>
-        <h1>Para publicar</h1>
+        <h1 id="page-title">Novo projecto</h1>
       </div>
       <div class="top-actions">
+        <nav class="tabs" aria-label="Secções">
+          <button type="button" class="tab active" data-tab="novo">Novo</button>
+          <button type="button" class="tab" data-tab="fila">Fila</button>
+        </nav>
+        <button type="button" id="btn-logout" class="ghost">Sair</button>
+      </div>
+    </header>
+
+    <section id="tab-novo" class="tab-panel">
+      <form id="ingest-form" class="ingest-card">
+        <p class="lede">A foto e o brief entram na fábrica (n8n → Diretor → copy → Instagram).</p>
+        <label>
+          Brief
+          <textarea id="brief" name="brief" rows="5" required placeholder="Tema, ângulo, tom, CTA, o que a foto mostra…"></textarea>
+        </label>
+        <label class="dropzone" id="dropzone">
+          <span class="dropzone-title">Fotos</span>
+          <span class="dropzone-hint">Arrasta imagens ou clica para escolher (máx. 10)</span>
+          <input type="file" id="fotos" name="fotos" accept="image/*" multiple required />
+        </label>
+        <div id="preview-fotos" class="preview-fotos" hidden></div>
+        <button type="submit" id="btn-ingest">Enviar para a fábrica</button>
+        <p id="ingest-status" class="status-line" role="status"></p>
+      </form>
+    </section>
+
+    <section id="tab-fila" class="tab-panel hidden">
+      <div class="fila-toolbar">
         <select id="filtro-estado">
           <option value="por_publicar">Por publicar</option>
           <option value="publicado">Publicados</option>
           <option value="descartado">Descartados</option>
         </select>
         <button type="button" id="btn-refresh" class="ghost">Atualizar</button>
-        <button type="button" id="btn-logout" class="ghost">Sair</button>
       </div>
-    </header>
-
-    <p id="status-line" class="status-line"></p>
-    <div id="queue" class="queue"></div>
+      <p id="status-line" class="status-line"></p>
+      <div id="queue" class="queue"></div>
+    </section>
   </div>
 
   <script src="/app.js" type="module"></script>

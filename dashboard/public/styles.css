@@ -315,3 +315,122 @@ button.ok { background: var(--ok); }
   .project-head { grid-template-columns: 1fr; }
   .thumb, .thumb-fallback { width: 100%; height: 220px; }
 }
+
+.tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.7);
+}
+
+.tab {
+  background: transparent;
+  color: var(--ink-soft);
+  border: 0;
+  padding: 0.45rem 0.95rem;
+  font-weight: 500;
+}
+
+.tab.active {
+  background: var(--accent);
+  color: #f7fffc;
+}
+
+.tab-panel { margin-top: 0.5rem; }
+
+.ingest-card {
+  width: min(640px, 100%);
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.35rem 1.25rem 1.2rem;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 0.85rem;
+}
+
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: #fffdf8;
+  color: var(--ink);
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.dropzone {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  place-items: center;
+  text-align: center;
+  border: 1.5px dashed rgba(15, 107, 92, 0.35);
+  border-radius: 14px;
+  padding: 1.4rem 1rem;
+  background: rgba(15, 107, 92, 0.05);
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(15, 107, 92, 0.12);
+}
+
+.dropzone-title {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dropzone-hint { font-size: 0.85rem; }
+
+.dropzone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.preview-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.65rem;
+}
+
+.preview-item {
+  margin: 0;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  background: #ddd5c8;
+}
+
+.preview-item figcaption {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fila-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.fila-toolbar select { width: auto; min-width: 10rem; }
+

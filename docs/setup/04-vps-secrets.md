@@ -6,10 +6,13 @@ Há **dois sítios** de secrets. Não mistures.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  VPS  →  ficheiro .env  (só infra)                      │
-│  • N8N_DOMAIN                                           │
+│  VPS  →  ficheiro .env  (infra + dashboard)             │
+│  • N8N_DOMAIN / DASHBOARD_DOMAIN                        │
 │  • N8N_ENCRYPTION_KEY   ← encripta as credenciais n8n   │
 │  • POSTGRES_USER / POSTGRES_PASSWORD                    │
+│  • DASHBOARD_PASSWORD / DASHBOARD_INGEST_TOKEN          │
+│  • SUPABASE_URL / SUPABASE_SERVICE_KEY (só dashboard)   │
+│  • N8N_INGEST_WEBHOOK_URL                               │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
@@ -23,7 +26,9 @@ Há **dois sítios** de secrets. Não mistures.
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Regra:** Anthropic, Supabase e Google Drive **não** entram no `.env` da VPS. Configuram-se em `https://n8n.SEU_DOMINIO` → Credentials (ver `03-credenciais-n8n.md`).
+**Regra:** Anthropic e Google Drive OAuth **não** entram no `.env` (só Credentials no n8n).  
+A `SUPABASE_SERVICE_KEY` no `.env` é para o **dashboard**; o n8n continua a usar a Credential na UI.  
+Dashboard online: `docs/setup/12-dashboard-online.md`.
 
 Se perderes a `N8N_ENCRYPTION_KEY`, as credenciais no n8n ficam ilegíveis — tens de as recriar.
 

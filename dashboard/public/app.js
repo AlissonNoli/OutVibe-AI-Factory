@@ -7,6 +7,13 @@ const loginError = document.getElementById('login-error');
 const queueEl = document.getElementById('queue');
 const statusLine = document.getElementById('status-line');
 const filtroEstado = document.getElementById('filtro-estado');
+const pageTitle = document.getElementById('page-title');
+const ingestForm = document.getElementById('ingest-form');
+const ingestStatus = document.getElementById('ingest-status');
+const fotosInput = document.getElementById('fotos');
+const previewFotos = document.getElementById('preview-fotos');
+const dropzone = document.getElementById('dropzone');
+const btnIngest = document.getElementById('btn-ingest');
 
 function token() {
   return sessionStorage.getItem(TOKEN_KEY) || '';
@@ -18,7 +25,10 @@ function setToken(t) {
 }
 
 async function api(path, opts = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const headers = { ...(opts.headers || {}) };
+  if (!(opts.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
   if (token()) headers.Authorization = `Bearer ${token()}`;
   const res = await fetch(path, { ...opts, headers });
   const data = await res.json().catch(() => ({}));
@@ -41,6 +51,16 @@ function showApp() {
   appView.classList.remove('hidden');
 }
 
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === name);
+  });
+  document.getElementById('tab-novo').classList.toggle('hidden', name !== 'novo');
+  document.getElementById('tab-fila').classList.toggle('hidden', name !== 'fila');
+  pageTitle.textContent = name === 'novo' ? 'Novo projecto' : 'Para publicar';
+  if (name === 'fila') loadFila();
+}
+
 function escapeHtml(s) {
   return String(s ?? '')
     .replaceAll('&', '&amp;')
@@ -61,6 +81,20 @@ function captionBlock(peca) {
 
 async function copyText(text) {
   await navigator.clipboard.writeText(text);
+}
+
+function renderFotoPreviews(fileList) {
+  const files = [...fileList].filter((f) => f.type.startsWith('image/'));
+  if (!files.length) {
+    previewFotos.hidden = true;
+    previewFotos.innerHTML = '';
+    return;
+  }
+  previewFotos.hidden = false;
+  previewFotos.innerHTML = files.map((f) => {
+    const url = URL.createObjectURL(f);
+    return `<figure class="preview-item"><img src="${url}" alt="" /><figcaption>${escapeHtml(f.name)}</figcaption></figure>`;
+  }).join('');
 }
 
 function metricsFormHtml(pub) {
@@ -91,7 +125,7 @@ function render(projetos) {
   const mostrandoPublicados = filtroEstado.value === 'publicado';
 
   if (!projetos.length) {
-    queueEl.innerHTML = `<div class="empty">Nada nesta fila. Corre o pipeline até <code>adaptado</code>/<code>pronto</code> ou muda o filtro.</div>`;
+    queueEl.innerHTML = `<div class="empty">Nada nesta fila. Envia um projecto em <strong>Novo</strong> ou corre o pipeline até <code>pronto</code>.</div>`;
     return;
   }
 
@@ -242,10 +276,56 @@ loginForm.addEventListener('submit', async (e) => {
     });
     setToken(data.token);
     showApp();
-    await loadFila();
+    switchTab('novo');
   } catch (err) {
     loginError.textContent = err.message || 'Falhou o login';
     loginError.hidden = false;
+  }
+});
+
+document.querySelectorAll('.tab').forEach((btn) => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+fotosInput.addEventListener('change', () => renderFotoPreviews(fotosInput.files));
+
+['dragenter', 'dragover'].forEach((ev) => {
+  dropzone.addEventListener(ev, (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+});
+['dragleave', 'drop'].forEach((ev) => {
+  dropzone.addEventListener(ev, (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+  });
+});
+dropzone.addEventListener('drop', (e) => {
+  const dt = e.dataTransfer;
+  if (!dt?.files?.length) return;
+  const transfer = new DataTransfer();
+  [...dt.files].filter((f) => f.type.startsWith('image/')).slice(0, 10).forEach((f) => transfer.items.add(f));
+  fotosInput.files = transfer.files;
+  renderFotoPreviews(fotosInput.files);
+});
+
+ingestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  ingestStatus.textContent = 'A enviar…';
+  btnIngest.disabled = true;
+  const fd = new FormData();
+  fd.append('brief', document.getElementById('brief').value.trim());
+  [...fotosInput.files].forEach((f) => fd.append('fotos', f));
+  try {
+    const data = await api('/api/ingest', { method: 'POST', body: fd });
+    ingestStatus.textContent = `${data.mensagem || 'Enviado.'} ID: ${data.projeto_id}`;
+    ingestForm.reset();
+    renderFotoPreviews([]);
+  } catch (err) {
+    ingestStatus.textContent = err.message;
+  } finally {
+    btnIngest.disabled = false;
   }
 });
 
@@ -258,7 +338,7 @@ filtroEstado.addEventListener('change', loadFila);
 
 if (token()) {
   showApp();
-  loadFila();
+  switchTab('novo');
 } else {
   showLogin();
 }

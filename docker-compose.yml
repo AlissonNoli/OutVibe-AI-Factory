@@ -36,10 +36,25 @@ services:
       - TZ=Europe/Lisbon
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - DASHBOARD_INGEST_TOKEN=${DASHBOARD_INGEST_TOKEN}
     volumes:
       - n8n_data:/home/node/.n8n
     expose:
       - "5678"
+
+  dashboard:
+    build: ./dashboard
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+      - N8N_INGEST_WEBHOOK_URL=${N8N_INGEST_WEBHOOK_URL}
+      - DASHBOARD_INGEST_TOKEN=${DASHBOARD_INGEST_TOKEN}
+    expose:
+      - "3000"
 
   caddy:
     image: caddy:2-alpine
@@ -53,6 +68,10 @@ services:
       - caddy_config:/config
     environment:
       - N8N_DOMAIN=${N8N_DOMAIN}
+      - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN}
+    depends_on:
+      - n8n
+      - dashboard
 
 volumes:
   postgres_data:

@@ -2,32 +2,22 @@
 
 Fábrica de conteúdo automatizada baseada em agentes de IA coordenados pelo n8n.
 
-**Estado atual: MVP v0.1 — pipeline de texto**
-Entrada: brief em texto + fotos na pasta `Inbox/` do Google Drive.
-Saída: legendas, hashtags e CTAs adaptados por plataforma em `Pronto_Para_Publicar/` + linha no calendário. Publicação manual.
+**Estado atual: MVP v0.2 — pipeline de texto + dashboard entrada**
+Entrada: brief + fotos pelo dashboard (`publish.outvibe.pt`) **ou** pasta `Inbox/` do Drive.
+Saída: legendas/hashtags/CTAs + fila de publicação no dashboard. Publicação manual.
 
 ## Arquitetura (MVP)
 
 ```
-Google Drive (Inbox)
-      │
-      ▼
-n8n: Workflow 01 — Ingestão ──► Supabase (projetos)
-      │
-      ▼
-Agente Diretor (Claude) ──► plano de produção (JSON)
-      │
-      ▼
-Agente Copywriter ──► texto-mãe (hooks, CTA, hashtags)
-      │
-      ▼
-Agente Social Media ──► versões por plataforma (IG, TikTok, LinkedIn, Threads)
-      │
-      ▼
-Google Drive (Pronto_Para_Publicar) + Calendário
+Dashboard (publish) ──┐
+                      ├──► n8n 00/01 → Supabase → Diretor → Copy → Social → Output
+Google Drive Inbox ───┘                              │
+                                                     ▼
+                                          Fila no dashboard + Drive Pronto_Para_Publicar
 ```
 
-Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, Analytics, Designer, SEO, Comercial. Ver `docs/blueprints/`.
+Entrada: brief + fotos (dashboard **ou** pasta `Inbox/` do Drive).  
+Saída: legendas/hashtags/CTAs por plataforma + calendário. Publicação manual via dashboard.
 
 ## Stack
 
@@ -36,7 +26,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - **Supabase** — metadados e histórico
 - **Google Drive** — entrada/saída de ficheiros
 - **Caddy** — HTTPS automático para os webhooks do n8n
-- **Dashboard** (`dashboard/`) — UI humana para publicar no Instagram (Fase 4b)
+- **Dashboard** (`dashboard/`) — entrada (foto + brief) em `publish.outvibe.pt` + fila de publicação Instagram (Fase 4b)
 
 ## Como correr
 
@@ -47,6 +37,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 5. APIs externas (Anthropic, Drive, Supabase) → **Credentials** no n8n (não no `.env`). Onde obter cada chave: `docs/setup/05-onde-conseguir-chaves.md`.
 6. Restantes pré-requisitos do Workflow 01: `docs/setup/00-pre-workflow-01.md`.
 7. Importar workflows de `n8n/workflows/` + migração `db/migrations/001_init.sql`.
+8. Dashboard online: DNS `publish` + secrets — `docs/setup/12-dashboard-online.md`.
 
 ## Convenções
 
@@ -67,6 +58,7 @@ Agentes futuros (fases seguintes): Editor de Vídeo, Viralização, Publicador, 
 - [x] Fase 3b — Social Media Instagram — `04-social-media.json`
 - [x] Fase 4 — Output humano + calendário — `05-output.json` (ver `docs/setup/10-workflow-05.md`)
 - [x] Fase 4b — **Dashboard de publicação humana** — app em `dashboard/` (PRD `docs/prd/001-dashboard-publicacao-humana.md`)
+- [x] Fase 4c — **Dashboard como entrada** — upload foto+brief → workflow `00` → fábrica (`docs/setup/12-dashboard-online.md`)
 - [x] Fase 5 — Feedback manual de métricas (views/likes/etc. no dashboard → `publicacoes`)
 - [ ] Fase 6 — Vídeo (Whisper, FFmpeg, Agente Editor)
 - [ ] Fase 7 — Viralização, Publicador automático, Analytics

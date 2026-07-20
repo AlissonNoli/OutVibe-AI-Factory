@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -6,7 +7,6 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Load .env if present (simple parser — no dotenv dep)
 const envPath = join(__dirname, '.env');
 if (existsSync(envPath)) {
   for (const line of readFileSync(envPath, 'utf8').split('\n')) {
@@ -19,17 +19,35 @@ const PORT = Number(process.env.PORT || 3000);
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'outvibe';
+const N8N_INGEST_WEBHOOK_URL = process.env.N8N_INGEST_WEBHOOK_URL || '';
+const DASHBOARD_INGEST_TOKEN = process.env.DASHBOARD_INGEST_TOKEN || '';
+const MAX_FILES = 10;
+const MAX_FILE_MB = 12;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.warn('[warn] SUPABASE_URL / SUPABASE_SERVICE_KEY em falta — copia dashboard/.env.example → .env');
+}
+if (!N8N_INGEST_WEBHOOK_URL || !DASHBOARD_INGEST_TOKEN) {
+  console.warn('[warn] N8N_INGEST_WEBHOOK_URL / DASHBOARD_INGEST_TOKEN em falta — ingestão desactivada');
 }
 
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   : null;
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { files: MAX_FILES, fileSize: MAX_FILE_MB * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (!file.mimetype?.startsWith('image/')) {
+      return cb(new Error('Só imagens (jpg, png, webp, …)'));
+    }
+    cb(null, true);
+  },
+});
+
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 function requireAuth(req, res, next) {
   const hdr = req.headers.authorization || '';
@@ -39,7 +57,11 @@ function requireAuth(req, res, next) {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, supabase: Boolean(supabase) });
+  res.json({
+    ok: true,
+    supabase: Boolean(supabase),
+    ingest: Boolean(N8N_INGEST_WEBHOOK_URL && DASHBOARD_INGEST_TOKEN),
+  });
 });
 
 app.post('/api/login', (req, res) => {
@@ -48,6 +70,71 @@ app.post('/api/login', (req, res) => {
     return res.json({ token: DASHBOARD_PASSWORD });
   }
   return res.status(401).json({ error: 'password inválida' });
+});
+
+app.post('/api/ingest', requireAuth, (req, res) => {
+  upload.array('fotos', MAX_FILES)(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'upload inválido' });
+    }
+
+    if (!N8N_INGEST_WEBHOOK_URL || !DASHBOARD_INGEST_TOKEN) {
+      return res.status(503).json({
+        error: 'Ingestão não configurada (N8N_INGEST_WEBHOOK_URL / DASHBOARD_INGEST_TOKEN)',
+      });
+    }
+
+    const brief = String(req.body?.brief || '').trim();
+    const files = Array.isArray(req.files) ? req.files : [];
+
+    if (!brief) return res.status(400).json({ error: 'brief obrigatório' });
+    if (!files.length) return res.status(400).json({ error: 'pelo menos 1 foto é obrigatória' });
+
+    const payload = {
+      brief,
+      files: files.map((f) => ({
+        name: f.originalname || `foto-${Date.now()}.jpg`,
+        mimeType: f.mimetype,
+        data: f.buffer.toString('base64'),
+      })),
+    };
+
+    try {
+      const upstream = await fetch(N8N_INGEST_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${DASHBOARD_INGEST_TOKEN}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await upstream.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { error: text.slice(0, 300) || 'resposta inválida do n8n' };
+      }
+
+      if (!upstream.ok) {
+        return res.status(upstream.status >= 400 ? upstream.status : 502).json({
+          error: data.error || `n8n HTTP ${upstream.status}`,
+          detalhe: data,
+        });
+      }
+
+      return res.json({
+        ok: true,
+        projeto_id: data.projeto_id,
+        ficheiros: data.ficheiros ?? files.length,
+        mensagem: data.mensagem || 'Projecto enviado para a fábrica',
+      });
+    } catch (e) {
+      console.error('[ingest]', e);
+      return res.status(502).json({ error: `Falha a contactar n8n: ${e.message}` });
+    }
+  });
 });
 
 app.get('/api/fila', requireAuth, async (req, res) => {
@@ -149,7 +236,6 @@ app.get('/api/fila', requireAuth, async (req, res) => {
     });
   }
 
-  // Pair piezas with publicacoes by index when conteudo_id is null
   const list = Object.values(byProj).map((proj) => {
     const pecas = proj.pecas.map((peca, idx) => ({
       ...peca,

@@ -1,0 +1,381 @@
+{
+  "name": "00 — Ingestão (Dashboard → Supabase + Drive)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "outvibe-ingest",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "webhook-ingest",
+      "name": "Webhook — ingest dashboard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "outvibe-ingest",
+      "notesInFlow": true,
+      "notes": "POST JSON { brief, files:[{name,mimeType,data}] }. Auth: Header Authorization Bearer = DASHBOARD_INGEST_TOKEN. Production URL: https://n8n.SEU_DOMINIO/webhook/outvibe-ingest"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst headers = item.headers || {};\nconst auth = String(headers.authorization || headers.Authorization || '').trim();\nconst expected = String($env.DASHBOARD_INGEST_TOKEN || '').trim();\n\nif (!expected) {\n  return [{\n    json: {\n      ok: false,\n      status: 503,\n      error: 'DASHBOARD_INGEST_TOKEN não definido no ambiente n8n (ver N8N_BLOCK_ENV_ACCESS_IN_NODE=false)'\n    }\n  }];\n}\n\nif (auth !== `Bearer ${expected}`) {\n  return [{\n    json: {\n      ok: false,\n      status: 401,\n      error: 'unauthorized'\n    }\n  }];\n}\n\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst brief = String(body.brief || '').trim();\nconst files = Array.isArray(body.files) ? body.files : [];\n\nif (!brief) {\n  return [{\n    json: {\n      ok: false,\n      status: 400,\n      error: 'brief obrigatório'\n    }\n  }];\n}\n\nconst images = files.filter((f) => {\n  const mime = String(f.mimeType || f.mime || '');\n  const data = String(f.data || f.dataBase64 || '');\n  return mime.startsWith('image/') && data.length > 0 && f.name;\n}).map((f) => ({\n  nome: String(f.name).slice(0, 180),\n  mimeType: String(f.mimeType || f.mime),\n  dataBase64: String(f.data || f.dataBase64).replace(/^data:[^;]+;base64,/, '')\n}));\n\nif (!images.length) {\n  return [{\n    json: {\n      ok: false,\n      status: 400,\n      error: 'pelo menos 1 imagem é obrigatória'\n    }\n  }];\n}\n\nif (images.length > 10) {\n  return [{\n    json: {\n      ok: false,\n      status: 400,\n      error: 'máximo 10 imagens por projecto'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ok: true,\n    brief,\n    files: images,\n    pasta_drive_id: '1RiQ5JMJASZnG4bOeghOfJTjUpqDXHQBF'\n  }\n}];"
+      },
+      "id": "code-validate",
+      "name": "Code — validar auth + body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-ok",
+      "name": "IF — body ok",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error || 'pedido inválido' }) }}",
+        "options": {
+          "responseCode": "={{ $json.status || 400 }}"
+        }
+      },
+      "id": "respond-erro",
+      "name": "Respond — erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 180]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "projetos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "origem",
+              "fieldValue": "dashboard"
+            },
+            {
+              "fieldId": "tipo_entrada",
+              "fieldValue": "fotos_texto"
+            },
+            {
+              "fieldId": "estado",
+              "fieldValue": "ingerido"
+            },
+            {
+              "fieldId": "brief",
+              "fieldValue": "={{ $json.brief }}"
+            },
+            {
+              "fieldId": "pasta_drive_id",
+              "fieldValue": "={{ $json.pasta_drive_id }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-projeto",
+      "name": "Supabase — criar projeto",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [760, 0],
+      "notesInFlow": true,
+      "notes": "Credencial Supabase OutVibe. origem=dashboard."
+    },
+    {
+      "parameters": {
+        "jsCode": "const projeto = $('Supabase — criar projeto').first().json;\nconst validated = $('Code — validar auth + body').first().json;\nconst projetoId = projeto.id;\n\nreturn validated.files.map((f) => ({\n  json: {\n    projeto_id: projetoId,\n    brief: validated.brief,\n    pasta_drive_id: validated.pasta_drive_id,\n    nome: f.nome,\n    mimeType: f.mimeType,\n    dataBase64: f.dataBase64\n  }\n}));"
+      },
+      "id": "code-expand",
+      "name": "Code — expandir ficheiros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map((item) => {\n  const { nome, mimeType, dataBase64, ...rest } = item.json;\n  return {\n    json: {\n      ...rest,\n      nome,\n      mimeType,\n      tipo: 'foto'\n    },\n    binary: {\n      data: {\n        data: dataBase64,\n        mimeType,\n        fileName: nome,\n        fileExtension: (nome.split('.').pop() || 'jpg').toLowerCase()\n      }\n    }\n  };\n});"
+      },
+      "id": "code-binary",
+      "name": "Code — base64 → binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1240, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $json.nome }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1RiQ5JMJASZnG4bOeghOfJTjUpqDXHQBF",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "drive-upload",
+      "name": "Drive — upload Processando",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1480, 0],
+      "notesInFlow": true,
+      "notes": "Folder Processando. Credencial Google Drive OutVibe."
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "arquivos",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $('Code — base64 → binary').item.json.projeto_id }}"
+            },
+            {
+              "fieldId": "nome",
+              "fieldValue": "={{ $('Code — base64 → binary').item.json.nome }}"
+            },
+            {
+              "fieldId": "tipo",
+              "fieldValue": "foto"
+            },
+            {
+              "fieldId": "drive_file_id",
+              "fieldValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-arquivo",
+      "name": "Supabase — registar arquivo",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1720, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const projetoId = $('Supabase — criar projeto').first().json.id;\nconst brief = $('Code — validar auth + body').first().json.brief;\nconst n = $input.all().length;\n\nreturn [{\n  json: {\n    ok: true,\n    projeto_id: projetoId,\n    brief,\n    ficheiros: n,\n    mensagem: `Projecto ingerido com ${n} foto(s). O Diretor (02) pode processar estado=ingerido.`\n  }\n}];"
+      },
+      "id": "code-resumo",
+      "name": "Code — resumo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 0]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "projeto_id",
+              "fieldValue": "={{ $json.projeto_id }}"
+            },
+            {
+              "fieldId": "agente",
+              "fieldValue": "ingestao_dashboard"
+            },
+            {
+              "fieldId": "nivel",
+              "fieldValue": "info"
+            },
+            {
+              "fieldId": "mensagem",
+              "fieldValue": "={{ $json.mensagem }}"
+            }
+          ]
+        }
+      },
+      "id": "supa-log",
+      "name": "Supabase — log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2200, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, projeto_id: $('Code — resumo').item.json.projeto_id, ficheiros: $('Code — resumo').item.json.ficheiros, mensagem: $('Code — resumo').item.json.mensagem }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok",
+      "name": "Respond — ok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2440, 0]
+    }
+  ],
+  "connections": {
+    "Webhook — ingest dashboard": {
+      "main": [
+        [
+          {
+            "node": "Code — validar auth + body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — validar auth + body": {
+      "main": [
+        [
+          {
+            "node": "IF — body ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — body ok": {
+      "main": [
+        [
+          {
+            "node": "Supabase — criar projeto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond — erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — criar projeto": {
+      "main": [
+        [
+          {
+            "node": "Code — expandir ficheiros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — expandir ficheiros": {
+      "main": [
+        [
+          {
+            "node": "Code — base64 → binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — base64 → binary": {
+      "main": [
+        [
+          {
+            "node": "Drive — upload Processando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive — upload Processando": {
+      "main": [
+        [
+          {
+            "node": "Supabase — registar arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — registar arquivo": {
+      "main": [
+        [
+          {
+            "node": "Code — resumo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code — resumo": {
+      "main": [
+        [
+          {
+            "node": "Supabase — log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase — log": {
+      "main": [
+        [
+          {
+            "node": "Respond — ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "outvibe": {
+      "fase": "entrada-dashboard",
+      "requer_anthropic": false,
+      "processando_folder_id": "1RiQ5JMJASZnG4bOeghOfJTjUpqDXHQBF",
+      "webhook_path": "outvibe-ingest"
+    }
+  },
+  "pinData": {},
+  "tags": []
+}
